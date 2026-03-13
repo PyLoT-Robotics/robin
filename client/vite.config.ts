@@ -2,7 +2,6 @@ import { fileURLToPath, URL } from 'node:url'
 
 import { defineConfig } from 'vite-plus'
 import vue from '@vitejs/plugin-vue'
-import vueDevTools from 'vite-plugin-vue-devtools'
 
 import { VitePWA } from 'vite-plugin-pwa'
 import tailwindcss from '@tailwindcss/vite'
@@ -28,7 +27,6 @@ export default defineConfig({
   },
   plugins: [
     vue(),
-    vueDevTools(),
     tailwindcss(),
     VitePWA({
       registerType: 'autoUpdate',
@@ -38,8 +36,8 @@ export default defineConfig({
       manifest: {
         name: 'Robin',
         short_name: 'Robin',
-        theme_color: '#000000',
-        background_color: '#000000',
+        theme_color: '#09090b',
+        background_color: '#09090b',
         display: 'standalone',
         icons: [
           {

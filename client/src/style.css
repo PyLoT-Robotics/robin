@@ -2,7 +2,9 @@
 
 body {
   overflow: hidden;
-  touch-action: manipulation;
   user-select: none;
   background: black;
+  overscroll-behavior: none;
+  -ms-touch-action: none;
+  touch-action: none;
 }
