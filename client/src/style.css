@@ -1,0 +1,8 @@
+@import "tailwindcss";
+
+body {
+  overflow: hidden;
+  touch-action: manipulation;
+  user-select: none;
+  background: black;
+}

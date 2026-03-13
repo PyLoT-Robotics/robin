@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vp dev",
+    "dev": "bun showQRcode.ts && vp dev",
     "build": "run-p type-check \"build-only {@}\" --",
     "preview": "vp preview",
     "test:unit": "vp test",
@@ -16,6 +16,13 @@
     "format": "vp fmt src/"
   },
   "dependencies": {
+    "@headlessui/vue": "^1.7.23",
+    "@iconify/vue": "^5.0.0",
+    "@tailwindcss/vite": "^4.2.1",
+    "@types/qrcode": "^1.5.6",
+    "qrcode": "^1.5.4",
+    "roslib": "^2.1.0",
+    "tailwindcss": "^4.2.1",
     "vite-plugin-pwa": "^1.2.0",
     "vue": "^3.5.29",
     "vue-router": "^5.0.3"
