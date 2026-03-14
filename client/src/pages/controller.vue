@@ -49,7 +49,13 @@
           <ArmController/>
         </div>
         <div
-          v-if="!shownUI.video.shown && !shownUI.console.shown && !shownUI.armController.shown"
+          v-if="shownUI.settings.shown"
+          class="grow overflow-hidden"
+          :class="isPortrait ? 'h-0' : 'w-0'">
+          <Settings/>
+        </div>
+        <div
+          v-if="!shownUI.video.shown && !shownUI.console.shown && !shownUI.armController.shown && !shownUI.settings.shown"
           class="grow overflow-hidden grid place-content-center text-zinc-200 text-4xl"
           :class="isPortrait ? 'h-0' : 'w-0'">
           <p>No UI is selected</p>
@@ -88,6 +94,7 @@ import ArmController from '@/components/armController.vue';
 import ControllerLeft from '@/components/controller_left.vue';
 import ControllerRight from '@/components/controller_right.vue';
 import LiveVideo from '@/components/live_video.vue';
+import Settings from '@/components/settings.vue';
 import { Icon } from '@iconify/vue';
 import { onMounted, onUnmounted, reactive, ref, watch } from 'vue';
 
@@ -118,9 +125,9 @@ watch(isPortrait, (changedToPortrait) => {
 })
 
 const shownUI = reactive({
-  controller: { icon: 'bi:controller', shown: true, available: true },
-  chat: { icon: 'bi:chat-left-dots', shown: true, available: true },
-  video: { icon: 'fa6-solid:video', shown: true, available: true },
+  controller: { icon: 'bi:controller', shown: false, available: true },
+  chat: { icon: 'bi:chat-left-dots', shown: false, available: true },
+  video: { icon: 'fa6-solid:video', shown: false, available: true },
   console: { icon: 'bi:terminal', shown: false, available: true },
   armController: { icon: 'streamline-ultimate:factory-industrial-robot-arm-1-bold', shown: false, available: true },
   settings: { icon: 'bi:gear-wide-connected', shown: false, available: true }

@@ -1,4 +1,5 @@
 <template>
+  <!--TODO: Routerが多分必要ないのでvue-router関連を一掃する-->
   <RouterView/>
 </template>
 <script setup lang="ts">
