@@ -1,5 +1,5 @@
 <template>
-  <div class="overflow-hidden flex items-center justify-center w-full h-full">
+  <div class="overflow-hidden flex items-center justify-center w-full h-full bg-orange-600">
     <video
       ref="remoteVideo"
       autoplay
