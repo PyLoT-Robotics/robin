@@ -1,10 +1,30 @@
 import { fileURLToPath, URL } from 'node:url'
 
+import fs from 'node:fs'
+import path from 'node:path'
+
 import { defineConfig } from 'vite-plus'
 import vue from '@vitejs/plugin-vue'
 
 import { VitePWA } from 'vite-plugin-pwa'
 import tailwindcss from '@tailwindcss/vite'
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const certDir = path.resolve(__dirname, "certs");
+const certFile = path.join(certDir, "dev-cert.pem");
+const keyFile = path.join(certDir, "dev-key.pem");
+
+const httpsOptions = (() => {
+  if (!fs.existsSync(certFile) || !fs.existsSync(keyFile)) {
+    throw new Error(
+      `HTTPS is enabled but certificate files were not found. Expected:\n- cert: ${certFile}\n- key: ${keyFile}\nCreate them with mkcert, then retry.`
+    );
+  }
+  return {
+    cert: fs.readFileSync(certFile),
+    key: fs.readFileSync(keyFile)
+  };
+})();
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -71,4 +91,7 @@ export default defineConfig({
       '@': fileURLToPath(new URL('./src', import.meta.url)),
     },
   },
+  server: {
+    https: httpsOptions
+  }
 })

@@ -19,7 +19,7 @@ for (const name of Object.keys(nets)) {
 
 const localIP = results[Object.keys(results)[0]][0]
 
-const url = `http://${localIP}:5173/?websocket_url=${encodeURIComponent(`ws://${localIP}:9090`)}`
+const url = `https://${localIP}:5173/?websocket_url=${encodeURIComponent(`ws://${localIP}:9090`)}`
 console.log(url)
 QRCode.toString(url, (error, qrcode) => {
     if( error ){
