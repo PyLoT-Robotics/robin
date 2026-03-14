@@ -1,5 +1,9 @@
 @import "tailwindcss";
 
+@theme {
+  --color-border: var(--color-zinc-700);
+}
+
 body {
   overflow: hidden;
   user-select: none;
