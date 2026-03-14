@@ -1,5 +1,5 @@
 <template>
-  <div class="basis-40 shrink-0 border-l border-border flex flex-col gap-6 pt-8">
+  <div class="w-40 h-full border-l border-border flex flex-col gap-6 pt-8">
     <div class="flex flex-col gap-2 px-4">
       <TriggerButton
         name="RR"

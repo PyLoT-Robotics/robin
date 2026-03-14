@@ -1,17 +1,26 @@
 <template>
   <main class="flex flex-row bg-zinc-950 w-screen h-screen">
-    <ControllerLeft
-      v-if="shownUI.controller.shown"
-      v-model:leftStick="sticks.left"
-      v-model:leftButtons="buttons.left"/>
+    <div
+      class="shrink-0 overflow-hidden transition-[width] duration-300 ease-in-out"
+      :class="shownUI.controller.shown ? 'w-40' : 'w-0'">
+      <ControllerLeft
+        class="transition-transform duration-300 ease-in-out"
+        :class="shownUI.controller.shown ? 'translate-x-0' : '-translate-x-full'"
+        v-model:leftStick="sticks.left"
+        v-model:leftButtons="buttons.left"/>
+    </div>
     <div class="grow min-w-0 overflow-hidden flex flex-col">
       <div
-        v-if="shownUI.chat.shown"
-        class="border-b border-border basis-16">
-        <div class="w-full h-full min-w-0 flex items-center justify-start text-xl font-mono text-zinc-200">
-          <p class="block min-w-0 w-full max-w-full truncate px-4">
-            Message...
-          </p>
+        class="shrink-0 overflow-hidden transition-[height] duration-300 ease-in-out"
+        :class="shownUI.chat.shown ? 'h-12' : 'h-0'">
+        <div
+          class="border-b border-border h-12 transition-transform duration-300 ease-in-out"
+          :class="shownUI.chat.shown ? 'translate-y-0' : '-translate-y-full'">
+          <div class="w-full h-full min-w-0 flex items-center justify-start text-md font-mono text-zinc-200">
+            <p class="block min-w-0 w-full max-w-full truncate px-4">
+              Message...
+            </p>
+          </div>
         </div>
       </div>
       <div class="grow h-0 flex flex-row">
@@ -55,10 +64,15 @@
         </button>
       </div>
     </div>
-    <ControllerRight
-      v-if="shownUI.controller.shown"
-      v-model:rightStick="sticks.right"
-      v-model:rightButtons="buttons.right"/>
+    <div
+      class="shrink-0 overflow-hidden transition-[width] duration-300 ease-in-out"
+      :class="shownUI.controller.shown ? 'w-40' : 'w-0'">
+      <ControllerRight
+        class="transition-transform duration-300 ease-in-out"
+        :class="shownUI.controller.shown ? 'translate-x-0' : 'translate-x-full'"
+        v-model:rightStick="sticks.right"
+        v-model:rightButtons="buttons.right"/>
+    </div>
   </main>
 </template>
 <script setup lang="ts">
@@ -69,12 +83,7 @@ import LiveVideo from '@/components/live_video.vue';
 import { Icon } from '@iconify/vue';
 import { reactive } from 'vue';
 
-const shownUI = reactive<{
-  [key: string]: {
-    readonly icon: string
-    shown: boolean
-  }
-}>({
+const shownUI = reactive({
   controller: { icon: 'bi:controller', shown: true },
   chat: { icon: 'bi:chat-left-dots', shown: true },
   video: { icon: 'fa6-solid:video', shown: true },
