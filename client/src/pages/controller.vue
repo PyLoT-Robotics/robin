@@ -23,27 +23,35 @@
           </div>
         </div>
       </div>
-      <div class="grow h-0 flex flex-row">
+      <div
+        class="grow h-0 flex"
+        :class="{
+          'flex-col': isPortrait
+        }">
         <div
           v-if="shownUI.video.shown"
-          class="grow w-0 overflow-hidden">
+          class="grow overflow-hidden"
+          :class="isPortrait ? 'h-0' : 'w-0'">
           <LiveVideo/>
         </div>
         <div
           v-if="shownUI.console.shown"
-          class="grow w-0 overflow-hidden text-zinc-200">
+          class="grow overflow-hidden text-zinc-200"
+          :class="isPortrait ? 'h-0' : 'w-0'">
           <div class="w-full h-full flex flex-col overflow-y-auto">
             <p v-for="i in 20" :key="i" class="break-all">awiofjawiofejiaofejapiefwajoipefjoipaofjeiajoipfeoijaopfieapoiwefiaopwfeoijpaoijefjoiaoiawe</p>
           </div>
         </div>
         <div
           v-if="shownUI.armController.shown"
-          class="grow w-0 overflow-hidden">
+          class="grow overflow-hidden"
+          :class="isPortrait ? 'h-0' : 'w-0'">
           <ArmController/>
         </div>
         <div
           v-if="!shownUI.video.shown && !shownUI.console.shown && !shownUI.armController.shown"
-          class="grow w-0 overflow-hidden grid place-content-center text-zinc-200 text-4xl">
+          class="grow overflow-hidden grid place-content-center text-zinc-200 text-4xl"
+          :class="isPortrait ? 'h-0' : 'w-0'">
           <p>No UI is selected</p>
         </div>
       </div>
