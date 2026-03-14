@@ -41,6 +41,11 @@
           class="grow w-0 overflow-hidden">
           <ArmController/>
         </div>
+        <div
+          v-if="!shownUI.video.shown && !shownUI.console.shown && !shownUI.armController.shown"
+          class="grow w-0 overflow-hidden grid place-content-center text-zinc-200 text-4xl">
+          <p>No UI is selected</p>
+        </div>
       </div>
       <div class="border-t border-border basis-16 flex justify-center">
         <button
@@ -50,17 +55,12 @@
           @click="shownUI[key].shown = !shownUI[key].shown"
           :class="{
             'bg-zinc-600 text-zinc-900': button.shown,
-            'text-zinc-400': !button.shown
+            'text-zinc-400': !button.shown,
+            'hidden': !button.available
           }">
           <Icon
             :icon="button.icon"
             class="text-3xl"/>
-        </button>
-        <button
-          class="px-4 border-x border-border grid place-content-center">
-          <Icon
-            icon='bi:gear-wide-connected'
-            class="text-zinc-400 text-3xl"/>
         </button>
       </div>
     </div>
@@ -81,14 +81,41 @@ import ControllerLeft from '@/components/controller_left.vue';
 import ControllerRight from '@/components/controller_right.vue';
 import LiveVideo from '@/components/live_video.vue';
 import { Icon } from '@iconify/vue';
-import { reactive } from 'vue';
+import { onMounted, onUnmounted, reactive, ref, watch } from 'vue';
+
+const isPortrait = ref(false);
+
+const updateIsPortrait = () => {
+  isPortrait.value = window.innerHeight > window.innerWidth;
+};
+
+onMounted(() => {
+  updateIsPortrait();
+  window.addEventListener('resize', updateIsPortrait);
+  window.addEventListener('orientationchange', updateIsPortrait);
+});
+
+onUnmounted(() => {
+  window.removeEventListener('resize', updateIsPortrait);
+  window.removeEventListener('orientationchange', updateIsPortrait);
+});
+
+watch(isPortrait, (changedToPortrait) => {
+  if(changedToPortrait){
+    shownUI.controller.shown = false
+    shownUI.controller.available = false
+  }else{
+    shownUI.controller.available = true
+  }
+})
 
 const shownUI = reactive({
-  controller: { icon: 'bi:controller', shown: true },
-  chat: { icon: 'bi:chat-left-dots', shown: true },
-  video: { icon: 'fa6-solid:video', shown: true },
-  console: { icon: 'bi:terminal', shown: false },
-  armController: { icon: 'streamline-ultimate:factory-industrial-robot-arm-1-bold', shown: false }
+  controller: { icon: 'bi:controller', shown: true, available: true },
+  chat: { icon: 'bi:chat-left-dots', shown: true, available: true },
+  video: { icon: 'fa6-solid:video', shown: true, available: true },
+  console: { icon: 'bi:terminal', shown: false, available: true },
+  armController: { icon: 'streamline-ultimate:factory-industrial-robot-arm-1-bold', shown: false, available: true },
+  settings: { icon: 'bi:gear-wide-connected', shown: false, available: true }
 })
 
 const sticks = reactive({
