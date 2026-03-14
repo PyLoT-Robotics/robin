@@ -27,12 +27,17 @@
             <p v-for="i in 20" :key="i" class="break-all">awiofjawiofejiaofejapiefwajoipefjoipaofjeiajoipfeoijaopfieapoiwefiaopwfeoijpaoijefjoiaoiawe</p>
           </div>
         </div>
+        <div
+          v-if="shownUI.armController.shown"
+          class="grow w-0 overflow-hidden">
+          <ArmController/>
+        </div>
       </div>
       <div class="border-t border-border basis-16 flex justify-center">
         <button
           v-for="(button, key) in shownUI"
           :key
-          class="aspect-square border-x border-border grid place-content-center"
+          class="px-4 border-x border-border grid place-content-center"
           @click="shownUI[key].shown = !shownUI[key].shown"
           :class="{
             'bg-zinc-600 text-zinc-900': button.shown,
@@ -43,7 +48,7 @@
             class="text-3xl"/>
         </button>
         <button
-          class="aspect-square border-x border-border grid place-content-center">
+          class="px-4 border-x border-border grid place-content-center">
           <Icon
             icon='bi:gear-wide-connected'
             class="text-zinc-400 text-3xl"/>
@@ -57,6 +62,7 @@
   </main>
 </template>
 <script setup lang="ts">
+import ArmController from '@/components/armController.vue';
 import ControllerLeft from '@/components/controller_left.vue';
 import ControllerRight from '@/components/controller_right.vue';
 import LiveVideo from '@/components/live_video.vue';
@@ -73,7 +79,7 @@ const shownUI = reactive<{
   chat: { icon: 'bi:chat-left-dots', shown: true },
   video: { icon: 'fa6-solid:video', shown: true },
   console: { icon: 'bi:terminal', shown: false },
-  robotStatus: { icon: 'streamline-ultimate:factory-industrial-robot-arm-1-bold', shown: false }
+  armController: { icon: 'streamline-ultimate:factory-industrial-robot-arm-1-bold', shown: false }
 })
 
 const sticks = reactive({
