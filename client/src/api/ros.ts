@@ -1,29 +1,45 @@
 import * as RosLib from "roslib";
-import { getLocalStorage } from "../utils/useLocalStorage";
 import type { Ros } from "roslib";
+import { ref } from "vue";
 
 export function createRos() {
-  const RosWebsocketUrl = getLocalStorage("WebSocketURL") ?? "";
+  const RosWebsocketUrl = `wss://${window.location.hostname}:${window.location.port}/ws`;
   
   const ros = new RosLib.Ros({
     url: RosWebsocketUrl
   });
 
-  ros.on("connection", () => {
-    console.log("🙌 Connected to WebSocket");
-  });
+  ros.connect(RosWebsocketUrl);
 
   ros.on("error", (error) => {
-    console.log("⚠ Error occurred in WebSocket Connection: ", error);
-  });
-
-  ros.on("close", () => {
-    console.log("👋 WebSocket Closed!");
+    console.error("⚠ Error occurred in WebSocket Connection");
+    console.log(error)
   });
 
   setInterval(() => { console.log(ros.isConnected) }, 1000)
 
-  return { ros }
+  const status = ref<"connected" | "closed" | "error">("closed");
+  const error = ref<string | null>(null);
+
+  ros.on("connection", () => {
+    status.value = "connected";
+    error.value = null;
+    console.log("🙌 Connected to WebSocket");
+  });
+
+  ros.on("close", () => {
+    status.value = "closed";
+    console.log("👋 WebSocket Closed!");
+  });
+
+  ros.on("error", (err) => {
+    status.value = "error";
+    error.value = err.message || String(err);
+    console.error("⚠ Error occurred in WebSocket Connection");
+    console.log(err);
+  });
+
+  return { ros, status, error };
 }
 
 export function createTopic( ros: RosLib.Ros, name: string, messageType: string ){

@@ -8,6 +8,7 @@ import vue from '@vitejs/plugin-vue'
 
 import { VitePWA } from 'vite-plugin-pwa'
 import tailwindcss from '@tailwindcss/vite'
+import os from "node:os"
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const certDir = path.resolve(__dirname, "certs");
@@ -92,6 +93,13 @@ export default defineConfig({
     },
   },
   server: {
-    https: httpsOptions
+    https: httpsOptions,
+    proxy: {
+      "/ws": {
+        target: "ws://localhost:9090",
+        ws: true,
+        rewrite: (path) => path.replace(/^\/ws/, ""),
+      },
+    }
   }
 })

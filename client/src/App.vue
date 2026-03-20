@@ -11,6 +11,11 @@
     </div>
     <div class="grow min-w-0 overflow-hidden flex flex-col">
       <div
+        v-if="status === 'error' || status === 'closed'"
+        class="border-red-500 border-b text-red-400 bg-red-500/20 text-center py-2">
+        Cannot Connect to ROS...
+      </div>
+      <div
         class="shrink-0 overflow-hidden transition-[height] duration-300 ease-in-out"
         :class="shownUI.chat.shown ? 'h-12' : 'h-0'">
         <div
@@ -52,7 +57,8 @@
           v-if="shownUI.settings.shown"
           class="grow overflow-hidden"
           :class="isPortrait ? 'h-0' : 'w-0'">
-          <Settings/>
+          <Settings
+            :ros/>
         </div>
         <div
           v-if="!shownUI.video.shown && !shownUI.console.shown && !shownUI.armController.shown && !shownUI.settings.shown"
@@ -97,6 +103,7 @@ import LiveVideo from '@/components/live_video.vue';
 import Settings from '@/components/settings.vue';
 import { Icon } from '@iconify/vue';
 import { onMounted, onUnmounted, reactive, ref, watch } from 'vue';
+import { createRos } from './api/ros';
 
 const isPortrait = ref(false);
 
@@ -162,4 +169,6 @@ const buttons = reactive({
     down: false
   }
 })
+
+const { ros, status } = createRos()
 </script>
