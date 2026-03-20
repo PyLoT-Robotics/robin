@@ -468,8 +468,7 @@ function drawCostmapLayer(
     rgba: Uint8ClampedArray,
     width: number,
     height: number,
-    costmap: CostmapData,
-    color: { r: number; g: number; b: number }
+    costmap: CostmapData
 ) {
     const frameToMap = resolveTransform(mapFrameId.value, costmap.frameId);
     if (!frameToMap) {
@@ -511,16 +510,31 @@ function drawCostmapLayer(
         }
 
         const offset = (py * width + px) * 4;
-        const alpha = Math.max(0.12, Math.min(0.9, value / 100)) * 255;
+        const alpha = 0.65 * 255;
+        const veryHighThreshold = 95;
+        const lowColor = { r: 136, g: 54, b: 173 };
+        const highColor = { r: 212, g: 77, b: 97 };
+        const veryHighColor = { r: 54, g: 255, b: 255 };
+        let targetColor = lowColor;
+        if (value >= veryHighThreshold) {
+            targetColor = veryHighColor;
+        } else {
+            const t = Math.max(0, Math.min(1, value / (veryHighThreshold - 1)));
+            targetColor = {
+                r: Math.round(lowColor.r + (highColor.r - lowColor.r) * t),
+                g: Math.round(lowColor.g + (highColor.g - lowColor.g) * t),
+                b: Math.round(lowColor.b + (highColor.b - lowColor.b) * t)
+            };
+        }
         const blend = alpha / 255;
         const r = rgba[offset] ?? 0;
         const g = rgba[offset + 1] ?? 0;
         const b = rgba[offset + 2] ?? 0;
         const a = rgba[offset + 3] ?? 0;
 
-        rgba[offset] = Math.round(r * (1 - blend) + color.r * blend);
-        rgba[offset + 1] = Math.round(g * (1 - blend) + color.g * blend);
-        rgba[offset + 2] = Math.round(b * (1 - blend) + color.b * blend);
+        rgba[offset] = Math.round(r * (1 - blend) + targetColor.r * blend);
+        rgba[offset + 1] = Math.round(g * (1 - blend) + targetColor.g * blend);
+        rgba[offset + 2] = Math.round(b * (1 - blend) + targetColor.b * blend);
         rgba[offset + 3] = Math.max(a, alpha);
     }
 }
@@ -548,11 +562,11 @@ function drawCostmapOverlay() {
     const rgba = imageData.data;
 
     if (showGlobalCostmap.value && latestGlobalCostmap) {
-        drawCostmapLayer(rgba, width, height, latestGlobalCostmap, { r: 251, g: 146, b: 60 });
+        drawCostmapLayer(rgba, width, height, latestGlobalCostmap);
     }
 
     if (showLocalCostmap.value && latestLocalCostmap) {
-        drawCostmapLayer(rgba, width, height, latestLocalCostmap, { r: 56, g: 189, b: 248 });
+        drawCostmapLayer(rgba, width, height, latestLocalCostmap);
     }
 
     ctx.putImageData(imageData, 0, 0);
@@ -756,14 +770,20 @@ function drawMap(width: number, height: number, data: ArrayLike<number>) {
 
     for (let i = 0; i < pixelCount; i++) {
         const value = i < safeLength ? data[i] : -1;
-        const color = value === 0 ? 255 : value === 100 ? 0 : 127;
+        const color = value === 0
+            ? { r: 255, g: 255, b: 255 }
+            : value === 100
+                ? { r: 0, g: 0, b: 0 }
+                : value === -1 || value === -100
+                    ? { r: 112, g: 137, b: 134 }
+                    : { r: 127, g: 127, b: 127 };
         const x = i % width;
         const y = Math.floor(i / width);
         const flippedY = height - 1 - y;
         const offset = (flippedY * width + x) * 4;
-        rgba[offset] = color;
-        rgba[offset + 1] = color;
-        rgba[offset + 2] = color;
+        rgba[offset] = color.r;
+        rgba[offset + 1] = color.g;
+        rgba[offset + 2] = color.b;
         rgba[offset + 3] = 255;
     }
 

@@ -8,7 +8,6 @@ import vue from '@vitejs/plugin-vue'
 
 import { VitePWA } from 'vite-plugin-pwa'
 import tailwindcss from '@tailwindcss/vite'
-import os from "node:os"
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const certDir = path.resolve(__dirname, "certs");
