@@ -1,5 +1,5 @@
 import * as RosLib from "roslib";
-import type { Ros, Topic } from "roslib";
+import type { Action, Ros, Topic } from "roslib";
 import { ref } from "vue";
 
 export function createRos() {
@@ -76,4 +76,16 @@ export function createService(
   });
 }
 
-export type { Ros, Topic };
+export function createAction(
+  ros: RosLib.Ros,
+  name: string,
+  actionType: string
+) {
+  return new RosLib.Action({
+    ros,
+    name,
+    actionType,
+  });
+}
+
+export type { Action, Ros, Topic };

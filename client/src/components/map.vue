@@ -10,7 +10,10 @@
                     class="size-6"/>
                 <p class="text-2xl">2D Pose Estimate</p>
             </button>
-            <button class="flex flex-row items-center gap-2 border-x border-border px-4 py-2">
+            <button
+                class="flex flex-row items-center gap-2 border-x border-border px-4 py-2 transition-colors"
+                :class="isNav2GoalMode ? 'bg-sky-500/30 text-sky-100' : ''"
+                @click="toggleNav2GoalMode">
                 <Icon
                     icon="material-symbols:pin-drop-outline"
                     class="size-6"/>
@@ -48,7 +51,7 @@
     </div>
 </template>
 <script setup lang="ts">
-import { createTopic, type Ros, type Topic } from "@/api/ros";
+import { createAction, createTopic, type Action, type Ros, type Topic } from "@/api/ros";
 import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 import { Icon } from "@iconify/vue";
 
@@ -58,6 +61,8 @@ const scanTopic = "/scan"
 const tfTopic = "/tf"
 const tfStaticTopic = "/tf_static"
 const initialPoseTopic = "/initialpose"
+const nav2GoalDefaultActionServer = "/navigate_to_pose"
+const nav2GoalDefaultActionType = "nav2_msgs/action/NavigateToPose"
 const globalCostmapTopics = [
     "/move_base/global_costmap/costmap",
     "/global_costmap/costmap"
@@ -74,6 +79,11 @@ let tfStaticSubscriber: Topic | null = null;
 let globalCostmapSubscriber: Topic | null = null;
 let localCostmapSubscriber: Topic | null = null;
 let initialPosePublisher: Topic | null = null;
+let nav2Action: Action | null = null;
+let nav2ResolvedActionServer = nav2GoalDefaultActionServer;
+let nav2ResolvedActionType = nav2GoalDefaultActionType;
+
+type PoseInteractionMode = "none" | "initial_pose" | "nav2_goal";
 
 type Pose2D = {
     x: number
@@ -193,7 +203,10 @@ const translateY = ref(0);
 const showScan = ref(true);
 const showGlobalCostmap = ref(true);
 const showLocalCostmap = ref(true);
-const isInitialPoseMode = ref(false);
+const poseInteractionMode = ref<PoseInteractionMode>("none");
+const isInitialPoseMode = computed(() => poseInteractionMode.value === "initial_pose");
+const isNav2GoalMode = computed(() => poseInteractionMode.value === "nav2_goal");
+const isPoseInteractionMode = computed(() => poseInteractionMode.value !== "none");
 const isPoseDragging = ref(false);
 
 const MIN_SCALE = 0.25;
@@ -217,7 +230,7 @@ const canvasTransformStyle = computed(() => ({
 }));
 
 const viewportCursor = computed(() => {
-    if (isInitialPoseMode.value) {
+    if (isPoseInteractionMode.value) {
         if (isPoseDragging.value) {
             return "crosshair";
         }
@@ -491,7 +504,7 @@ function drawPoseOverlay() {
 
     ctx.clearRect(0, 0, width, height);
 
-    if (!isInitialPoseMode.value || !isPoseDragging.value || !poseDragStartScreen || !poseDragCurrentScreen) {
+    if (!isPoseInteractionMode.value || !isPoseDragging.value || !poseDragStartScreen || !poseDragCurrentScreen) {
         return;
     }
 
@@ -512,8 +525,11 @@ function drawPoseOverlay() {
     const normalX = -uy;
     const normalY = ux;
 
-    ctx.strokeStyle = "rgba(245, 158, 11, 0.95)";
-    ctx.fillStyle = "rgba(245, 158, 11, 0.95)";
+    const overlayColor = isInitialPoseMode.value
+        ? "rgba(245, 158, 11, 0.95)"
+        : "rgba(56, 189, 248, 0.95)";
+    ctx.strokeStyle = overlayColor;
+    ctx.fillStyle = overlayColor;
     ctx.lineWidth = 3;
     ctx.lineCap = "round";
 
@@ -565,15 +581,141 @@ function publishInitialPose(position: { x: number; y: number }, yaw: number) {
     });
 }
 
-function toggleInitialPoseMode() {
-    isInitialPoseMode.value = !isInitialPoseMode.value;
-    if (!isInitialPoseMode.value) {
-        isPoseDragging.value = false;
-        poseDragStartScreen = null;
-        poseDragCurrentScreen = null;
-        poseDragStartWorld = null;
-        activePointerId = null;
+function ensureNav2ActionClient() {
+    if (nav2Action) {
+        return nav2Action;
     }
+
+    nav2Action = createAction(ros, nav2ResolvedActionServer, nav2ResolvedActionType);
+    return nav2Action;
+}
+
+function parseActionTypeFromFeedbackType(feedbackType: string) {
+    const suffix = "_FeedbackMessage";
+    if (!feedbackType.endsWith(suffix)) {
+        return null;
+    }
+    return feedbackType.slice(0, -suffix.length);
+}
+
+async function resolveNav2ActionConfig() {
+    const candidateNames = [
+        nav2GoalDefaultActionServer,
+        "/bt_navigator/navigate_to_pose"
+    ];
+
+    for (const actionName of candidateNames) {
+        const feedbackType = await resolveExistingTopicType(`${actionName}/_action/feedback`);
+        if (!feedbackType) {
+            continue;
+        }
+
+        const resolvedType = parseActionTypeFromFeedbackType(feedbackType);
+        if (!resolvedType) {
+            continue;
+        }
+
+        nav2ResolvedActionServer = actionName;
+        nav2ResolvedActionType = resolvedType;
+        nav2Action = null;
+        console.info("Resolved Nav2 action endpoint:", {
+            action: nav2ResolvedActionServer,
+            actionType: nav2ResolvedActionType
+        });
+        return;
+    }
+
+    nav2ResolvedActionServer = nav2GoalDefaultActionServer;
+    nav2ResolvedActionType = nav2GoalDefaultActionType;
+}
+
+function sendNav2Goal(position: { x: number; y: number }, yaw: number) {
+    const quaternion = yawToQuaternion(yaw);
+
+    const goalPayload = {
+        pose: {
+            header: {
+                frame_id: mapFrameId.value
+            },
+            pose: {
+                position: {
+                    x: position.x,
+                    y: position.y,
+                    z: 0
+                },
+                orientation: quaternion
+            }
+        },
+        behavior_tree: ""
+    };
+
+    const fallbackTypes = Array.from(new Set([
+        nav2ResolvedActionType,
+        "nav2_msgs/action/NavigateToPose",
+        "nav2_msgs/NavigateToPose"
+    ]));
+
+    const sendWithType = (attempt: number) => {
+        const actionType = fallbackTypes[attempt];
+        if (!actionType) {
+            console.error("Nav2 goal failed: no compatible action type found", {
+                action: nav2ResolvedActionServer,
+                attemptedTypes: fallbackTypes,
+                goal: goalPayload
+            });
+            return;
+        }
+
+        nav2ResolvedActionType = actionType;
+        nav2Action = null;
+        const action = ensureNav2ActionClient();
+
+        action.sendGoal(
+            goalPayload,
+            (result) => {
+                console.info("Nav2 goal finished", result);
+            },
+            (feedback) => {
+                console.debug("Nav2 goal feedback", feedback);
+            },
+            (error) => {
+                console.error("Nav2 goal attempt failed", {
+                    error,
+                    action: nav2ResolvedActionServer,
+                    actionType,
+                    goal: goalPayload
+                });
+                sendWithType(attempt + 1);
+            }
+        );
+
+        console.info("Nav2 goal sent", {
+            action: nav2ResolvedActionServer,
+            actionType,
+            goal: goalPayload
+        });
+    };
+
+    sendWithType(0);
+}
+
+function toggleInitialPoseMode() {
+    poseInteractionMode.value = isInitialPoseMode.value ? "none" : "initial_pose";
+    isPoseDragging.value = false;
+    poseDragStartScreen = null;
+    poseDragCurrentScreen = null;
+    poseDragStartWorld = null;
+    activePointerId = null;
+    schedulePoseOverlayDraw();
+}
+
+function toggleNav2GoalMode() {
+    poseInteractionMode.value = isNav2GoalMode.value ? "none" : "nav2_goal";
+    isPoseDragging.value = false;
+    poseDragStartScreen = null;
+    poseDragCurrentScreen = null;
+    poseDragStartWorld = null;
+    activePointerId = null;
     schedulePoseOverlayDraw();
 }
 
@@ -913,7 +1055,7 @@ function handlePointerDown(event: PointerEvent) {
 
     viewport.value.setPointerCapture(event.pointerId);
 
-    if (isInitialPoseMode.value) {
+    if (isPoseInteractionMode.value) {
         const world = viewportPointToWorld(event.clientX, event.clientY);
         if (!world) {
             return;
@@ -941,7 +1083,7 @@ function handlePointerDown(event: PointerEvent) {
 }
 
 function handlePointerMove(event: PointerEvent) {
-    if (isInitialPoseMode.value) {
+    if (isPoseInteractionMode.value) {
         if (!isPoseDragging.value || event.pointerId !== activePointerId || !viewport.value) {
             return;
         }
@@ -968,7 +1110,7 @@ function handlePointerUp(event: PointerEvent) {
         viewport.value.releasePointerCapture(event.pointerId);
     }
 
-    if (isInitialPoseMode.value) {
+    if (isPoseInteractionMode.value) {
         if (!isPoseDragging.value || event.pointerId !== activePointerId) {
             return;
         }
@@ -979,7 +1121,11 @@ function handlePointerUp(event: PointerEvent) {
             const dx = endWorld.x - startWorld.x;
             const dy = endWorld.y - startWorld.y;
             const yaw = Math.hypot(dx, dy) < 1e-4 ? 0 : Math.atan2(dy, dx);
-            publishInitialPose(startWorld, yaw);
+            if (isInitialPoseMode.value) {
+                publishInitialPose(startWorld, yaw);
+            } else if (isNav2GoalMode.value) {
+                sendNav2Goal(startWorld, yaw);
+            }
         }
 
         isPoseDragging.value = false;
@@ -1218,6 +1364,12 @@ onMounted(async () => {
             tfStaticSubscriber.subscribe(updateTfTransforms);
         } catch (tfStaticError) {
             console.warn("Failed to subscribe /tf_static topic:", tfStaticError);
+        }
+
+        try {
+            await resolveNav2ActionConfig();
+        } catch (nav2ResolveError) {
+            console.warn("Failed to resolve Nav2 action endpoint, using defaults.", nav2ResolveError);
         }
     } catch (error) {
         throw new Error(`Failed to subscribe: ${String(error)}`);
