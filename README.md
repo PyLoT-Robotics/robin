@@ -27,3 +27,9 @@ sh gist/setup.sh
 https://zenn.dev/takumiabe21/articles/645a38c0c18389 の「○iPhoneのSafariからHTTPS接続する。」以降を参考にインストールしてください。
 ## Androidの場合
 また今度書きます、、
+
+# 起動する
+```bash
+ros2 launch rosbridge_server rosbridge_websocket_launch.xml
+```
+```bash

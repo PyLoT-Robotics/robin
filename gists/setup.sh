@@ -62,6 +62,7 @@ if [ "$BUN_OK" = true ] && [ "$VP_OK" = true ]; then
 fi
 
 #TODO:mkcertが入っているかの確認もする
+#TODO:ROS bridge serverも入っているか確認する
 
 # client/certs ディレクトリ確認
 if [ -d "client/certs" ]; then
