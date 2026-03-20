@@ -1,13 +1,8 @@
-import type { Ros } from "roslib";
-import * as RosLib from "roslib";
+import { createService, type Ros } from "@/api/ros";
 import { computed, ref } from "vue";
 
 export function useTopics(ros: Ros) {
-  const topicsService = new RosLib.Service({
-    ros,
-    name: "/rosapi/topics",
-    serviceType: "rosapi/Topics",
-  });
+  const topicsService = createService(ros, "/rosapi/topics", "rosapi/Topics");
 
   const _topics = ref<string[]>([]);
   const topics = computed<Readonly<string[]>>(() => _topics.value);

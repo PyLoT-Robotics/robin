@@ -1,5 +1,6 @@
 import * as RosLib from "roslib";
 import { getLocalStorage } from "../utils/useLocalStorage";
+import type { Ros } from "roslib";
 
 export function createRos() {
   const RosWebsocketUrl = getLocalStorage("WebSocketURL") ?? "";
@@ -24,3 +25,25 @@ export function createRos() {
 
   return { ros }
 }
+
+export function createTopic( ros: RosLib.Ros, name: string, messageType: string ){
+  return new RosLib.Topic({
+    ros,
+    name,
+    messageType
+  });
+}
+
+export function createService(
+  ros: RosLib.Ros,
+  name: string,
+  serviceType: "rosapi/Topics"
+){
+  return new RosLib.Service({
+    ros,
+    name,
+    serviceType
+  });
+}
+
+export type { Ros };

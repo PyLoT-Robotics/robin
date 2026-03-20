@@ -1,6 +1,5 @@
-import type { Ros } from "roslib";
-import * as RosLib from "roslib";
 import type { Control } from "../model/control";
+import { createTopic, type Ros } from "@/api/ros";
 
 function getDpadValue(a: boolean, b: boolean): number {
   return a ? (b ? 0 : 1) : (b ? -1 : 0);
@@ -40,8 +39,8 @@ function convertControlToJoyMessage(controls: Control): unknown {
 export async function createControllerTopicInterval(ros: Ros, TPS: number, controls: Control){
   const name = "/joy"
   const messageType = await new Promise<string>(resolve => ros.getTopicType(name, resolve))
-  const joyTopic = new RosLib.Topic({ ros, name, messageType })
-  
+  const joyTopic = createTopic( ros, name, messageType )
+
   return setInterval(() => {
     joyTopic.publish(convertControlToJoyMessage(controls));
   }, 1000 / TPS);
