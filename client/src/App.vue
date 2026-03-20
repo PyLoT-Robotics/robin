@@ -21,11 +21,8 @@
         <div
           class="border-b border-border h-12 transition-transform duration-300 ease-in-out"
           :class="shownUI.chat.shown ? 'translate-y-0' : '-translate-y-full'">
-          <div class="w-full h-full min-w-0 flex items-center justify-start text-md font-mono text-zinc-200">
-            <p class="block min-w-0 w-full max-w-full truncate px-4">
-              Message...
-            </p>
-          </div>
+          <Message
+            :ros/>
         </div>
       </div>
       <div
@@ -104,6 +101,7 @@ import Log from '@/components/log.vue';
 import { Icon } from '@iconify/vue';
 import { onMounted, onUnmounted, reactive, ref, watch } from 'vue';
 import { createRos } from './api/ros';
+import Message from './components/message.vue';
 
 const isPortrait = ref(false);
 
