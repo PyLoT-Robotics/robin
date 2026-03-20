@@ -14,6 +14,10 @@
             class="absolute left-0 top-0"
             :style="canvasTransformStyle"></canvas>
         <canvas
+            ref="costmapCanvas"
+            class="absolute left-0 top-0 pointer-events-none"
+            :style="canvasTransformStyle"></canvas>
+        <canvas
             ref="scanCanvas"
             class="absolute left-0 top-0 pointer-events-none"
             :style="canvasTransformStyle"></canvas>
@@ -43,6 +47,20 @@
                 @click="toggleScanOverlay">
                 Scan
             </button>
+            <button
+                type="button"
+                class="h-9 w-9 rounded border text-[10px]"
+                :class="showGlobalCostmap ? 'bg-amber-500/80 border-amber-300 text-amber-50' : 'bg-zinc-900/70 border-zinc-500 text-zinc-200'"
+                @click="toggleGlobalCostmapOverlay">
+                GCost
+            </button>
+            <button
+                type="button"
+                class="h-9 w-9 rounded border text-[10px]"
+                :class="showLocalCostmap ? 'bg-cyan-500/80 border-cyan-300 text-cyan-50' : 'bg-zinc-900/70 border-zinc-500 text-zinc-200'"
+                @click="toggleLocalCostmapOverlay">
+                LCost
+            </button>
         </div>
     </div>
 </template>
@@ -55,11 +73,21 @@ const mapTopic = "/map"
 const scanTopic = "/scan"
 const tfTopic = "/tf"
 const tfStaticTopic = "/tf_static"
+const globalCostmapTopics = [
+    "/move_base/global_costmap/costmap",
+    "/global_costmap/costmap"
+];
+const localCostmapTopics = [
+    "/move_base/local_costmap/costmap",
+    "/local_costmap/costmap"
+];
 
 let mapSubscriber: Topic | null = null;
 let scanSubscriber: Topic | null = null;
 let tfSubscriber: Topic | null = null;
 let tfStaticSubscriber: Topic | null = null;
+let globalCostmapSubscriber: Topic | null = null;
+let localCostmapSubscriber: Topic | null = null;
 
 type Pose2D = {
     x: number
@@ -90,6 +118,41 @@ type TfMessage = {
     transforms?: TfTransformMessage[]
 };
 
+type OccupancyGridMessage = {
+    header?: {
+        frame_id?: string
+    }
+    info?: {
+        width?: number
+        height?: number
+        resolution?: number
+        origin?: {
+            position?: {
+                x?: number
+                y?: number
+            }
+            orientation?: {
+                x?: number
+                y?: number
+                z?: number
+                w?: number
+            }
+        }
+    }
+    data?: ArrayLike<number>
+};
+
+type CostmapData = {
+    frameId: string
+    width: number
+    height: number
+    resolution: number
+    originX: number
+    originY: number
+    originYaw: number
+    data: ArrayLike<number>
+};
+
 function resolveTopicType(topicName: string) {
     return new Promise<string>((resolve) => {
         ros.getTopicType(topicName, (topicType) => {
@@ -98,11 +161,25 @@ function resolveTopicType(topicName: string) {
     });
 }
 
+function resolveExistingTopicType(topicName: string) {
+    return new Promise<string | null>((resolve) => {
+        ros.getTopicType(topicName, (topicType) => {
+            if (topicType && topicType.length > 0) {
+                resolve(topicType);
+                return;
+            }
+            resolve(null);
+        });
+    });
+}
+
 const canvas = ref<HTMLCanvasElement>();
+const costmapCanvas = ref<HTMLCanvasElement>();
 const scanCanvas = ref<HTMLCanvasElement>();
 const viewport = ref<HTMLDivElement>();
 let animationFrameId: number | null = null;
 let scanAnimationFrameId: number | null = null;
+let costmapAnimationFrameId: number | null = null;
 let pendingFrame: { width: number; height: number; data: ArrayLike<number> } | null = null;
 let latestScan: {
     angleMin: number;
@@ -112,6 +189,8 @@ let latestScan: {
     frameId: string;
     ranges: ArrayLike<number>;
 } | null = null;
+let latestGlobalCostmap: CostmapData | null = null;
+let latestLocalCostmap: CostmapData | null = null;
 const tfTransforms = new Map<string, Pose2D>();
 const mapWidth = ref(0);
 const mapHeight = ref(0);
@@ -124,9 +203,12 @@ const scale = ref(1);
 const translateX = ref(0);
 const translateY = ref(0);
 const showScan = ref(true);
+const showGlobalCostmap = ref(true);
+const showLocalCostmap = ref(true);
 
 const MIN_SCALE = 0.25;
 const MAX_SCALE = 8;
+const MAP_ROTATION_DEG = -90;
 
 const isDragging = ref(false);
 let dragStartX = 0;
@@ -135,8 +217,8 @@ let dragOriginX = 0;
 let dragOriginY = 0;
 
 const canvasTransformStyle = computed(() => ({
-    transform: `translate(${translateX.value}px, ${translateY.value}px) scale(${scale.value})`,
-    transformOrigin: "0 0",
+    transform: `translate(${translateX.value}px, ${translateY.value}px) scale(${scale.value}) rotate(${MAP_ROTATION_DEG}deg)`,
+    transformOrigin: `${mapWidth.value / 2}px ${mapHeight.value / 2}px`,
     imageRendering: "pixelated" as const,
     cursor: isDragging.value ? "grabbing" : "grab"
 }));
@@ -151,6 +233,14 @@ function toSafeDimension(value: unknown) {
 
 function clamp(value: number, min: number, max: number) {
     return Math.max(min, Math.min(max, value));
+}
+
+function getRotatedMapSize() {
+    const normalizedRotation = Math.abs(MAP_ROTATION_DEG) % 180;
+    if (normalizedRotation === 90) {
+        return { width: mapHeight.value, height: mapWidth.value };
+    }
+    return { width: mapWidth.value, height: mapHeight.value };
 }
 
 function normalizeFrameId(frameId: string | undefined) {
@@ -281,6 +371,7 @@ function updateTfTransforms(message: unknown) {
         setTransform(transform.header?.frame_id, transform.child_frame_id, { x, y, yaw });
     }
 
+    scheduleCostmapDraw();
     scheduleScanDraw();
 }
 
@@ -373,6 +464,111 @@ function drawScanOverlay() {
     ctx.fill();
 }
 
+function drawCostmapLayer(
+    rgba: Uint8ClampedArray,
+    width: number,
+    height: number,
+    costmap: CostmapData,
+    color: { r: number; g: number; b: number }
+) {
+    const frameToMap = resolveTransform(mapFrameId.value, costmap.frameId);
+    if (!frameToMap) {
+        return;
+    }
+
+    const originInMap = composePose(frameToMap, {
+        x: costmap.originX,
+        y: costmap.originY,
+        yaw: costmap.originYaw
+    });
+
+    const cosYaw = Math.cos(originInMap.yaw);
+    const sinYaw = Math.sin(originInMap.yaw);
+    const safeLength = Math.min(costmap.data.length, costmap.width * costmap.height);
+
+    for (let index = 0; index < safeLength; index++) {
+        const value = costmap.data[index];
+        if (typeof value !== "number" || !Number.isFinite(value) || value <= 0) {
+            continue;
+        }
+
+        const cx = index % costmap.width;
+        const cy = Math.floor(index / costmap.width);
+        const localX = (cx + 0.5) * costmap.resolution;
+        const localY = (cy + 0.5) * costmap.resolution;
+
+        const worldX = originInMap.x + cosYaw * localX - sinYaw * localY;
+        const worldY = originInMap.y + sinYaw * localX + cosYaw * localY;
+        const pixel = mapWorldToPixel(worldX, worldY);
+        if (!pixel) {
+            continue;
+        }
+
+        const px = Math.round(pixel.x);
+        const py = Math.round(pixel.y);
+        if (px < 0 || px >= width || py < 0 || py >= height) {
+            continue;
+        }
+
+        const offset = (py * width + px) * 4;
+        const alpha = Math.max(0.12, Math.min(0.9, value / 100)) * 255;
+        const blend = alpha / 255;
+        const r = rgba[offset] ?? 0;
+        const g = rgba[offset + 1] ?? 0;
+        const b = rgba[offset + 2] ?? 0;
+        const a = rgba[offset + 3] ?? 0;
+
+        rgba[offset] = Math.round(r * (1 - blend) + color.r * blend);
+        rgba[offset + 1] = Math.round(g * (1 - blend) + color.g * blend);
+        rgba[offset + 2] = Math.round(b * (1 - blend) + color.b * blend);
+        rgba[offset + 3] = Math.max(a, alpha);
+    }
+}
+
+function drawCostmapOverlay() {
+    if (!costmapCanvas.value) {
+        return;
+    }
+
+    const ctx = costmapCanvas.value.getContext("2d");
+    if (!ctx) {
+        return;
+    }
+
+    const width = mapWidth.value;
+    const height = mapHeight.value;
+    if (width <= 0 || height <= 0) {
+        return;
+    }
+
+    costmapCanvas.value.width = width;
+    costmapCanvas.value.height = height;
+
+    const imageData = ctx.createImageData(width, height);
+    const rgba = imageData.data;
+
+    if (showGlobalCostmap.value && latestGlobalCostmap) {
+        drawCostmapLayer(rgba, width, height, latestGlobalCostmap, { r: 251, g: 146, b: 60 });
+    }
+
+    if (showLocalCostmap.value && latestLocalCostmap) {
+        drawCostmapLayer(rgba, width, height, latestLocalCostmap, { r: 56, g: 189, b: 248 });
+    }
+
+    ctx.putImageData(imageData, 0, 0);
+}
+
+function scheduleCostmapDraw() {
+    if (costmapAnimationFrameId !== null) {
+        return;
+    }
+
+    costmapAnimationFrameId = window.requestAnimationFrame(() => {
+        costmapAnimationFrameId = null;
+        drawCostmapOverlay();
+    });
+}
+
 function scheduleScanDraw() {
     if (scanAnimationFrameId !== null) {
         return;
@@ -389,6 +585,62 @@ function toggleScanOverlay() {
     scheduleScanDraw();
 }
 
+function toggleGlobalCostmapOverlay() {
+    showGlobalCostmap.value = !showGlobalCostmap.value;
+    scheduleCostmapDraw();
+}
+
+function toggleLocalCostmapOverlay() {
+    showLocalCostmap.value = !showLocalCostmap.value;
+    scheduleCostmapDraw();
+}
+
+function parseCostmapMessage(message: unknown) {
+    const msg = message as OccupancyGridMessage;
+    const width = toSafeDimension(msg.info?.width);
+    const height = toSafeDimension(msg.info?.height);
+    const resolution = msg.info?.resolution;
+
+    if (
+        !width ||
+        !height ||
+        typeof resolution !== "number" ||
+        !Number.isFinite(resolution) ||
+        resolution <= 0 ||
+        !msg.data
+    ) {
+        return null;
+    }
+
+    const originX = msg.info?.origin?.position?.x;
+    const originY = msg.info?.origin?.position?.y;
+    return {
+        frameId: normalizeFrameId(msg.header?.frame_id) || mapFrameId.value,
+        width,
+        height,
+        resolution,
+        originX: typeof originX === "number" && Number.isFinite(originX) ? originX : 0,
+        originY: typeof originY === "number" && Number.isFinite(originY) ? originY : 0,
+        originYaw: quaternionToYaw(msg.info?.origin?.orientation),
+        data: msg.data
+    } as CostmapData;
+}
+
+async function subscribeFirstAvailableTopic(topics: string[], onMessage: (message: unknown) => void) {
+    for (const topicName of topics) {
+        const topicType = await resolveExistingTopicType(topicName);
+        if (!topicType) {
+            continue;
+        }
+
+        const topic = createTopic(ros, topicName, topicType);
+        topic.subscribe(onMessage);
+        return topic;
+    }
+
+    return null;
+}
+
 function fitMapToViewport() {
     if (!viewport.value || mapWidth.value <= 0 || mapHeight.value <= 0) {
         return;
@@ -400,15 +652,16 @@ function fitMapToViewport() {
         return;
     }
 
+    const rotatedSize = getRotatedMapSize();
     const fitScale = clamp(
-        Math.min(viewportWidth / mapWidth.value, viewportHeight / mapHeight.value),
+        Math.min(viewportWidth / rotatedSize.width, viewportHeight / rotatedSize.height),
         MIN_SCALE,
         MAX_SCALE
     );
 
     scale.value = fitScale;
-    translateX.value = (viewportWidth - mapWidth.value * fitScale) / 2;
-    translateY.value = (viewportHeight - mapHeight.value * fitScale) / 2;
+    translateX.value = (viewportWidth - rotatedSize.width * fitScale) / 2;
+    translateY.value = (viewportHeight - rotatedSize.height * fitScale) / 2;
 }
 
 function zoomAt(nextScale: number, centerX: number, centerY: number) {
@@ -485,6 +738,10 @@ function drawMap(width: number, height: number, data: ArrayLike<number>) {
     const mapSizeChanged = canvas.value.width !== width || canvas.value.height !== height;
     canvas.value.width = width;
     canvas.value.height = height;
+    if (costmapCanvas.value) {
+        costmapCanvas.value.width = width;
+        costmapCanvas.value.height = height;
+    }
     if (scanCanvas.value) {
         scanCanvas.value.width = width;
         scanCanvas.value.height = height;
@@ -516,6 +773,7 @@ function drawMap(width: number, height: number, data: ArrayLike<number>) {
         fitMapToViewport();
     }
 
+    scheduleCostmapDraw();
     scheduleScanDraw();
 }
 
@@ -637,6 +895,38 @@ onMounted(async () => {
         }
 
         try {
+            globalCostmapSubscriber = await subscribeFirstAvailableTopic(globalCostmapTopics, (message) => {
+                const parsed = parseCostmapMessage(message);
+                if (!parsed) {
+                    return;
+                }
+                latestGlobalCostmap = parsed;
+                scheduleCostmapDraw();
+            });
+            if (!globalCostmapSubscriber) {
+                console.warn("Global costmap topic was not found.");
+            }
+        } catch (globalCostmapError) {
+            console.warn("Failed to subscribe global costmap topic:", globalCostmapError);
+        }
+
+        try {
+            localCostmapSubscriber = await subscribeFirstAvailableTopic(localCostmapTopics, (message) => {
+                const parsed = parseCostmapMessage(message);
+                if (!parsed) {
+                    return;
+                }
+                latestLocalCostmap = parsed;
+                scheduleCostmapDraw();
+            });
+            if (!localCostmapSubscriber) {
+                console.warn("Local costmap topic was not found.");
+            }
+        } catch (localCostmapError) {
+            console.warn("Failed to subscribe local costmap topic:", localCostmapError);
+        }
+
+        try {
             const tfTopicType = await resolveTopicType(tfTopic);
             tfSubscriber = createTopic(ros, tfTopic, tfTopicType);
             tfSubscriber.subscribe(updateTfTransforms);
@@ -664,6 +954,14 @@ onBeforeUnmount(() => {
             scanSubscriber.unsubscribe();
             scanSubscriber = null;
         }
+        if (globalCostmapSubscriber) {
+            globalCostmapSubscriber.unsubscribe();
+            globalCostmapSubscriber = null;
+        }
+        if (localCostmapSubscriber) {
+            localCostmapSubscriber.unsubscribe();
+            localCostmapSubscriber = null;
+        }
         if (tfSubscriber) {
             tfSubscriber.unsubscribe();
             tfSubscriber = null;
@@ -680,8 +978,14 @@ onBeforeUnmount(() => {
             window.cancelAnimationFrame(scanAnimationFrameId);
             scanAnimationFrameId = null;
         }
+        if (costmapAnimationFrameId !== null) {
+            window.cancelAnimationFrame(costmapAnimationFrameId);
+            costmapAnimationFrameId = null;
+        }
         pendingFrame = null;
         latestScan = null;
+        latestGlobalCostmap = null;
+        latestLocalCostmap = null;
         return;
     }
     mapSubscriber.unsubscribe();
@@ -689,6 +993,14 @@ onBeforeUnmount(() => {
     if (scanSubscriber) {
         scanSubscriber.unsubscribe();
         scanSubscriber = null;
+    }
+    if (globalCostmapSubscriber) {
+        globalCostmapSubscriber.unsubscribe();
+        globalCostmapSubscriber = null;
+    }
+    if (localCostmapSubscriber) {
+        localCostmapSubscriber.unsubscribe();
+        localCostmapSubscriber = null;
     }
     if (tfSubscriber) {
         tfSubscriber.unsubscribe();
@@ -707,8 +1019,14 @@ onBeforeUnmount(() => {
         window.cancelAnimationFrame(scanAnimationFrameId);
         scanAnimationFrameId = null;
     }
+    if (costmapAnimationFrameId !== null) {
+        window.cancelAnimationFrame(costmapAnimationFrameId);
+        costmapAnimationFrameId = null;
+    }
     pendingFrame = null;
     latestScan = null;
+    latestGlobalCostmap = null;
+    latestLocalCostmap = null;
     tfTransforms.clear();
 });
 </script>
