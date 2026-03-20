@@ -1,42 +1,61 @@
 <template>
-  <CircleButton
-    name="⚙️"
-    @click="isOpen = true"/>
-  <Modal
-    v-model:open="isOpen"
-    title="Settings">
-    <div class="grow grid grid-cols-[max-content,1fr] gap-4 overflow-y-auto place-content-center p-4 font-mono text-lg">
-      <p class="text-right">WebSocketURL:</p>
-      <input
-        type="url"
-        placeholder="ws://localhost:9090"
-        class="border px-3 bg-transparent border-white border-dotted placeholder:text-white/40 outline-none"
-        v-model="webSocketURL"/>
-      </div>
-    <div class="flex flex-row justify-center gap-4">
-      <TriggerButton
-        @click="close"
-        name="CLOSE"
-        class="w-32"/>
+  <div class="w-full h-full overflow-y-auto flex flex-col gap-8 text-zinc-200 text-xl py-4">
+    <div class="flex flex-col gap-1 font-mono">
+      <p class="px-2 text-lg">Camera Topic</p>
+      <select
+        v-model="cameraTopic"
+        class="bg-zinc-900 text-zinc-200 px-2 py-1 border-y border-border outline-none">
+        <option
+          v-for="topic in topicsList"
+          :key="`camera-${topic}`"
+          :value="topic">
+          {{ topic }}
+        </option>
+      </select>
     </div>
-  </Modal>
+    
+    <div class="flex flex-col gap-1 font-mono">
+      <p class="px-2 text-lg">Log Topic</p>
+      <select
+        v-model="logTopic"
+        class="bg-zinc-900 text-zinc-200 px-2 py-1 border-y border-border outline-none">
+        <option
+          v-for="topic in topicsList"
+          :key="`log-${topic}`"
+          :value="topic">
+          {{ topic }}
+        </option>
+      </select>
+    </div>
+  </div>
 </template>
+
 <script setup lang="ts">
-import { ref } from 'vue';
-import CircleButton from './circleButton.vue';
-import TriggerButton from './triggerButton.vue';
-import Modal from './modal.vue';
-import { useLocalStorage } from '../utils/useLocalStorage';
-import { useTmp } from '../utils/useTmp';
+import { computed } from "vue";
+import { useLocalStorage } from "@/hooks/useLocalStorage";
+import { type Ros } from "@/api/ros"
+import { useTopicsList } from "@/hooks/useTopicsList";
 
-const isOpen = ref(false)
-const [ webSocketURL, save ] = useTmp(useLocalStorage('WebSocketURL'))
+const cameraTopicStorage = useLocalStorage("CameraTopic")
+const logTopicStorage = useLocalStorage("LogTopic")
 
-function close(){
-  const changed = save()
-  isOpen.value = false
-  if( changed ){
-    location.reload()
+const { ros } = defineProps<{
+  ros: Ros
+}>()
+
+const { topicsList } = useTopicsList(ros)
+
+const cameraTopic = computed({
+  get: () => cameraTopicStorage.value ?? "/camera/image_raw",
+  set: (value: string) => {
+    cameraTopicStorage.value = value
   }
-}
+})
+
+const logTopic = computed({
+  get: () => logTopicStorage.value ?? "/log",
+  set: (value: string) => {
+    logTopicStorage.value = value
+  }
+})
 </script>

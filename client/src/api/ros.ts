@@ -1,26 +1,91 @@
-import RosLib from "roslib";
-import { getLocalStorage } from "../utils/useLocalStorage";
+import * as RosLib from "roslib";
+import type { Action, Ros, Topic } from "roslib";
+import { ref } from "vue";
 
 export function createRos() {
-  const RosWebsocketUrl = getLocalStorage("WebSocketURL") ?? "";
-  
-  const ros = new RosLib.Ros({
-    url: RosWebsocketUrl
-  });
+  const wsProtocol = window.location.protocol === "https:" ? "wss" : "ws";
+  const RosWebsocketUrl = `${wsProtocol}://${window.location.host}/ws`;
+  const ros = new RosLib.Ros();
+
+  const status = ref<"connected" | "closed" | "error">("closed");
+  const error = ref<string | null>(null);
+  let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+  let reconnectDelayMs = 1000;
+
+  const scheduleReconnect = () => {
+    if (reconnectTimer) {
+      return;
+    }
+
+    reconnectTimer = setTimeout(() => {
+      reconnectTimer = null;
+      try {
+        ros.connect(RosWebsocketUrl);
+      } catch (err) {
+        error.value = err instanceof Error ? err.message : String(err);
+        scheduleReconnect();
+      }
+    }, reconnectDelayMs);
+
+    reconnectDelayMs = Math.min(reconnectDelayMs * 2, 15000);
+  };
 
   ros.on("connection", () => {
+    status.value = "connected";
+    error.value = null;
+    reconnectDelayMs = 1000;
     console.log("🙌 Connected to WebSocket");
   });
 
-  ros.on("error", (error) => {
-    console.log("⚠ Error occurred in WebSocket Connection: ", error);
-  });
-
   ros.on("close", () => {
+    status.value = "closed";
     console.log("👋 WebSocket Closed!");
+    scheduleReconnect();
   });
 
-  setInterval(() => { console.log(ros.isConnected) }, 1000)
+  ros.on("error", (err) => {
+    status.value = "error";
+    error.value = err instanceof Error ? err.message : String(err);
+    console.error("⚠ Error occurred in WebSocket Connection");
+    console.log(err);
+    scheduleReconnect();
+  });
 
-  return { ros }
+  ros.connect(RosWebsocketUrl);
+
+  return { ros, status, error };
 }
+
+export function createTopic( ros: RosLib.Ros, name: string, messageType: string ){
+  return new RosLib.Topic({
+    ros,
+    name,
+    messageType
+  });
+}
+
+export function createService(
+  ros: RosLib.Ros,
+  name: string,
+  serviceType: "rosapi/Topics" | "rosapi/TopicType"
+){
+  return new RosLib.Service({
+    ros,
+    name,
+    serviceType
+  });
+}
+
+export function createAction(
+  ros: RosLib.Ros,
+  name: string,
+  actionType: string
+) {
+  return new RosLib.Action({
+    ros,
+    name,
+    actionType,
+  });
+}
+
+export type { Action, Ros, Topic };

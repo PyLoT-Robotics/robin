@@ -1,10 +1,14 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+
+@theme {
+  --color-border: var(--color-zinc-700);
+}
 
 body {
   overflow: hidden;
-  touch-action: manipulation;
   user-select: none;
   background: black;
+  overscroll-behavior: none;
+  -ms-touch-action: none;
+  touch-action: none;
 }

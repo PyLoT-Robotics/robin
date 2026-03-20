@@ -38,8 +38,7 @@ const icon = computed(() => {
     '↑': 'fa6-solid:chevron-up',
     '←': 'fa6-solid:chevron-left',
     '↓': 'fa6-solid:chevron-down',
-    '→': 'fa6-solid:chevron-right',
-    '⚙️': 'fa6-solid:gear',
+    '→': 'fa6-solid:chevron-right'
   })[name]
 })
 </script>

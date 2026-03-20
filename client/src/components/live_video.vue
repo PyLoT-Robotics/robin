@@ -1,5 +1,5 @@
 <template>
-  <main class="bg-black overflow-hidden flex items-center justify-center w-full rounded-md border border-white">
+  <div class="overflow-hidden flex items-center justify-center w-full h-full bg-orange-600">
     <video
       ref="remoteVideo"
       autoplay
@@ -7,7 +7,7 @@
       muted
       preload="none"
       class="w-full h-full object-contain" />
-  </main>
+  </div>
 </template>
 <script setup lang="ts">
 import { onMounted, ref, watchEffect } from "vue";

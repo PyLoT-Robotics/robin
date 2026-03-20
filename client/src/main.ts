@@ -2,18 +2,12 @@ import { createApp } from 'vue'
 import './style.css'
 import App from './App.vue'
 
-import { createRouter, createWebHistory } from 'vue-router'
-import Controller from './pages/controller.vue'
-import Face from './pages/face.vue'
+const params = new URLSearchParams(window.location.search)
+const webSocketUrlParam = params.get('websocket_url')
 
-const router = createRouter({
-  history: createWebHistory(),
-  routes: [
-    { path: '/', component: Controller, name: "controller" },
-    { path: '/face', component: Face, name: "face" },
-  ],
-})
+if (webSocketUrlParam) {
+  localStorage.setItem('WebSocketURL', webSocketUrlParam)
+}
 
 createApp(App)
-  .use(router)
   .mount('#app')
