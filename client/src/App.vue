@@ -43,9 +43,8 @@
           v-if="shownUI.console.shown"
           class="grow overflow-hidden text-zinc-200"
           :class="isPortrait ? 'h-0' : 'w-0'">
-          <div class="w-full h-full flex flex-col overflow-y-auto">
-            <p v-for="i in 20" :key="i" class="break-all">awiofjawiofejiaofejapiefwajoipefjoipaofjeiajoipfeoijaopfieapoiwefiaopwfeoijpaoijefjoiaoiawe</p>
-          </div>
+          <Log
+            :ros/>
         </div>
         <div
           v-if="shownUI.armController.shown"
@@ -96,11 +95,12 @@
   </main>
 </template>
 <script setup lang="ts">
-import ArmController from '@/components/armController.vue';
-import ControllerLeft from '@/components/controller_left.vue';
-import ControllerRight from '@/components/controller_right.vue';
+import ArmController from '@/components/controller/armController.vue';
+import ControllerLeft from '@/components/controller/controller_left.vue';
+import ControllerRight from '@/components/controller/controller_right.vue';
 import LiveVideo from '@/components/live_video.vue';
 import Settings from '@/components/settings.vue';
+import Log from '@/components/log.vue';
 import { Icon } from '@iconify/vue';
 import { onMounted, onUnmounted, reactive, ref, watch } from 'vue';
 import { createRos } from './api/ros';

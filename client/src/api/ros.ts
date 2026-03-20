@@ -34,7 +34,7 @@ export function createRos() {
 
   ros.on("error", (err) => {
     status.value = "error";
-    error.value = err.message || String(err);
+    error.value = err instanceof Error ? err.message : String(err);
     console.error("⚠ Error occurred in WebSocket Connection");
     console.log(err);
   });
@@ -53,7 +53,7 @@ export function createTopic( ros: RosLib.Ros, name: string, messageType: string 
 export function createService(
   ros: RosLib.Ros,
   name: string,
-  serviceType: "rosapi/Topics"
+  serviceType: "rosapi/Topics" | "rosapi/TopicType"
 ){
   return new RosLib.Service({
     ros,
