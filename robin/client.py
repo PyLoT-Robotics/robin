@@ -8,7 +8,7 @@ import os
 package_name = "robin"
 package_dir = get_package_share_directory(package_name)
 
-client_dir = os.path.normpath(os.path.join(package_dir, "../../../../", "client"))
+client_dir = os.path.normpath(os.path.join(package_dir, "../../../../", "src", "robin", "client"))
 
 class Client(Node):
   def __init__(self):

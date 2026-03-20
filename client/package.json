@@ -13,9 +13,7 @@
     "lint": "run-s lint:*",
     "lint:oxlint": "vp lint . --fix",
     "lint:eslint": "eslint . --fix --cache",
-    "format": "vp fmt src/",
-
-    "create_cert": "sh create_cert.sh"
+    "format": "vp fmt src/"
   },
   "dependencies": {
     "@headlessui/vue": "^1.7.23",
