@@ -44,6 +44,10 @@
                 class="absolute left-0 top-0 pointer-events-none"
                 :style="canvasTransformStyle"></canvas>
             <canvas
+                ref="globalPathCanvas"
+                class="absolute left-0 top-0 pointer-events-none"
+                :style="canvasTransformStyle"></canvas>
+            <canvas
                 ref="poseOverlayCanvas"
                 class="absolute inset-0 pointer-events-none"></canvas>
             
@@ -71,6 +75,12 @@ const localCostmapTopics = [
     "/move_base/local_costmap/costmap",
     "/local_costmap/costmap"
 ];
+const globalPathTopics = [
+    "/plan",
+    "/global_plan",
+    "/move_base/NavfnROS/plan",
+    "/move_base/GlobalPlanner/plan"
+];
 
 let mapSubscriber: Topic | null = null;
 let scanSubscriber: Topic | null = null;
@@ -78,6 +88,7 @@ let tfSubscriber: Topic | null = null;
 let tfStaticSubscriber: Topic | null = null;
 let globalCostmapSubscriber: Topic | null = null;
 let localCostmapSubscriber: Topic | null = null;
+let globalPathSubscriber: Topic | null = null;
 let initialPosePublisher: Topic | null = null;
 let nav2Action: Action | null = null;
 let nav2ResolvedActionServer = nav2GoalDefaultActionServer;
@@ -149,6 +160,20 @@ type CostmapData = {
     data: ArrayLike<number>
 };
 
+type PathMessage = {
+    header?: {
+        frame_id?: string
+    }
+    poses?: Array<{
+        pose?: {
+            position?: {
+                x?: number
+                y?: number
+            }
+        }
+    }>
+};
+
 function resolveTopicType(topicName: string) {
     return new Promise<string>((resolve) => {
         ros.getTopicType(topicName, (topicType) => {
@@ -172,11 +197,13 @@ function resolveExistingTopicType(topicName: string) {
 const canvas = ref<HTMLCanvasElement>();
 const costmapCanvas = ref<HTMLCanvasElement>();
 const scanCanvas = ref<HTMLCanvasElement>();
+const globalPathCanvas = ref<HTMLCanvasElement>();
 const poseOverlayCanvas = ref<HTMLCanvasElement>();
 const viewport = ref<HTMLDivElement>();
 let animationFrameId: number | null = null;
 let scanAnimationFrameId: number | null = null;
 let costmapAnimationFrameId: number | null = null;
+let globalPathAnimationFrameId: number | null = null;
 let poseOverlayAnimationFrameId: number | null = null;
 let pendingFrame: { width: number; height: number; data: ArrayLike<number> } | null = null;
 let latestScan: {
@@ -189,6 +216,7 @@ let latestScan: {
 } | null = null;
 let latestGlobalCostmap: CostmapData | null = null;
 let latestLocalCostmap: CostmapData | null = null;
+let latestGlobalPath: { frameId: string; points: Array<{ x: number; y: number }> } | null = null;
 const tfTransforms = new Map<string, Pose2D>();
 const mapWidth = ref(0);
 const mapHeight = ref(0);
@@ -203,6 +231,7 @@ const translateY = ref(0);
 const showScan = ref(true);
 const showGlobalCostmap = ref(true);
 const showLocalCostmap = ref(true);
+const showGlobalPath = ref(true);
 const poseInteractionMode = ref<PoseInteractionMode>("none");
 const isInitialPoseMode = computed(() => poseInteractionMode.value === "initial_pose");
 const isNav2GoalMode = computed(() => poseInteractionMode.value === "nav2_goal");
@@ -392,6 +421,7 @@ function updateTfTransforms(message: unknown) {
 
     scheduleCostmapDraw();
     scheduleScanDraw();
+    scheduleGlobalPathDraw();
 }
 
 function mapWorldToPixel(worldX: number, worldY: number) {
@@ -898,6 +928,68 @@ function drawCostmapOverlay() {
     ctx.putImageData(imageData, 0, 0);
 }
 
+function drawGlobalPathOverlay() {
+    if (!globalPathCanvas.value) {
+        return;
+    }
+
+    const ctx = globalPathCanvas.value.getContext("2d");
+    if (!ctx) {
+        return;
+    }
+
+    const width = mapWidth.value;
+    const height = mapHeight.value;
+    if (width <= 0 || height <= 0) {
+        return;
+    }
+
+    globalPathCanvas.value.width = width;
+    globalPathCanvas.value.height = height;
+    ctx.clearRect(0, 0, width, height);
+
+    if (!showGlobalPath.value || !latestGlobalPath || latestGlobalPath.points.length < 2) {
+        return;
+    }
+
+    const pathToMap = resolveTransform(mapFrameId.value, latestGlobalPath.frameId);
+    if (!pathToMap) {
+        return;
+    }
+
+    const cosYaw = Math.cos(pathToMap.yaw);
+    const sinYaw = Math.sin(pathToMap.yaw);
+    let hasPath = false;
+
+    ctx.beginPath();
+
+    for (const point of latestGlobalPath.points) {
+        const mapX = pathToMap.x + cosYaw * point.x - sinYaw * point.y;
+        const mapY = pathToMap.y + sinYaw * point.x + cosYaw * point.y;
+        const pixel = mapWorldToPixel(mapX, mapY);
+        if (!pixel) {
+            continue;
+        }
+
+        if (!hasPath) {
+            ctx.moveTo(pixel.x, pixel.y);
+            hasPath = true;
+        } else {
+            ctx.lineTo(pixel.x, pixel.y);
+        }
+    }
+
+    if (!hasPath) {
+        return;
+    }
+
+    ctx.strokeStyle = "rgba(251, 191, 36, 0.95)";
+    ctx.lineWidth = Math.max(2, mapResolution.value > 0 ? 0.1 / mapResolution.value : 2);
+    ctx.lineJoin = "round";
+    ctx.lineCap = "round";
+    ctx.stroke();
+}
+
 function scheduleCostmapDraw() {
     if (costmapAnimationFrameId !== null) {
         return;
@@ -906,6 +998,17 @@ function scheduleCostmapDraw() {
     costmapAnimationFrameId = window.requestAnimationFrame(() => {
         costmapAnimationFrameId = null;
         drawCostmapOverlay();
+    });
+}
+
+function scheduleGlobalPathDraw() {
+    if (globalPathAnimationFrameId !== null) {
+        return;
+    }
+
+    globalPathAnimationFrameId = window.requestAnimationFrame(() => {
+        globalPathAnimationFrameId = null;
+        drawGlobalPathOverlay();
     });
 }
 
@@ -964,6 +1067,33 @@ function parseCostmapMessage(message: unknown) {
         originYaw: quaternionToYaw(msg.info?.origin?.orientation),
         data: msg.data
     } as CostmapData;
+}
+
+function parsePathMessage(message: unknown) {
+    const msg = message as PathMessage;
+    if (!Array.isArray(msg.poses)) {
+        return null;
+    }
+
+    const points: Array<{ x: number; y: number }> = [];
+    for (const poseStamped of msg.poses) {
+        const x = poseStamped?.pose?.position?.x;
+        const y = poseStamped?.pose?.position?.y;
+        if (
+            typeof x !== "number" ||
+            !Number.isFinite(x) ||
+            typeof y !== "number" ||
+            !Number.isFinite(y)
+        ) {
+            continue;
+        }
+        points.push({ x, y });
+    }
+
+    return {
+        frameId: normalizeFrameId(msg.header?.frame_id) || mapFrameId.value,
+        points
+    };
 }
 
 async function subscribeFirstAvailableTopic(topics: string[], onMessage: (message: unknown) => void) {
@@ -1162,6 +1292,10 @@ function drawMap(width: number, height: number, data: ArrayLike<number>) {
         scanCanvas.value.width = width;
         scanCanvas.value.height = height;
     }
+    if (globalPathCanvas.value) {
+        globalPathCanvas.value.width = width;
+        globalPathCanvas.value.height = height;
+    }
     mapWidth.value = width;
     mapHeight.value = height;
 
@@ -1197,6 +1331,7 @@ function drawMap(width: number, height: number, data: ArrayLike<number>) {
 
     scheduleCostmapDraw();
     scheduleScanDraw();
+    scheduleGlobalPathDraw();
     schedulePoseOverlayDraw();
 }
 
@@ -1351,6 +1486,22 @@ onMounted(async () => {
         }
 
         try {
+            globalPathSubscriber = await subscribeFirstAvailableTopic(globalPathTopics, (message) => {
+                const parsed = parsePathMessage(message);
+                if (!parsed) {
+                    return;
+                }
+                latestGlobalPath = parsed;
+                scheduleGlobalPathDraw();
+            });
+            if (!globalPathSubscriber) {
+                console.warn("Global planner path topic was not found.");
+            }
+        } catch (globalPathError) {
+            console.warn("Failed to subscribe global planner path topic:", globalPathError);
+        }
+
+        try {
             const tfTopicType = await resolveTopicType(tfTopic);
             tfSubscriber = createTopic(ros, tfTopic, tfTopicType);
             tfSubscriber.subscribe(updateTfTransforms);
@@ -1393,6 +1544,10 @@ onBeforeUnmount(() => {
             localCostmapSubscriber.unsubscribe();
             localCostmapSubscriber = null;
         }
+        if (globalPathSubscriber) {
+            globalPathSubscriber.unsubscribe();
+            globalPathSubscriber = null;
+        }
         if (tfSubscriber) {
             tfSubscriber.unsubscribe();
             tfSubscriber = null;
@@ -1413,6 +1568,10 @@ onBeforeUnmount(() => {
             window.cancelAnimationFrame(costmapAnimationFrameId);
             costmapAnimationFrameId = null;
         }
+        if (globalPathAnimationFrameId !== null) {
+            window.cancelAnimationFrame(globalPathAnimationFrameId);
+            globalPathAnimationFrameId = null;
+        }
         if (poseOverlayAnimationFrameId !== null) {
             window.cancelAnimationFrame(poseOverlayAnimationFrameId);
             poseOverlayAnimationFrameId = null;
@@ -1421,6 +1580,7 @@ onBeforeUnmount(() => {
         latestScan = null;
         latestGlobalCostmap = null;
         latestLocalCostmap = null;
+        latestGlobalPath = null;
         return;
     }
     mapSubscriber.unsubscribe();
@@ -1436,6 +1596,10 @@ onBeforeUnmount(() => {
     if (localCostmapSubscriber) {
         localCostmapSubscriber.unsubscribe();
         localCostmapSubscriber = null;
+    }
+    if (globalPathSubscriber) {
+        globalPathSubscriber.unsubscribe();
+        globalPathSubscriber = null;
     }
     if (tfSubscriber) {
         tfSubscriber.unsubscribe();
@@ -1458,6 +1622,10 @@ onBeforeUnmount(() => {
         window.cancelAnimationFrame(costmapAnimationFrameId);
         costmapAnimationFrameId = null;
     }
+    if (globalPathAnimationFrameId !== null) {
+        window.cancelAnimationFrame(globalPathAnimationFrameId);
+        globalPathAnimationFrameId = null;
+    }
     if (poseOverlayAnimationFrameId !== null) {
         window.cancelAnimationFrame(poseOverlayAnimationFrameId);
         poseOverlayAnimationFrameId = null;
@@ -1466,6 +1634,7 @@ onBeforeUnmount(() => {
     latestScan = null;
     latestGlobalCostmap = null;
     latestLocalCostmap = null;
+    latestGlobalPath = null;
     tfTransforms.clear();
 });
 </script>
