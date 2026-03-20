@@ -61,6 +61,8 @@ if [ "$BUN_OK" = true ] && [ "$VP_OK" = true ]; then
     fi
 fi
 
+#TODO:mkcertが入っているかの確認もする
+
 # client/certs ディレクトリ確認
 if [ -d "client/certs" ]; then
     echo "✅ client/certs already exists"
