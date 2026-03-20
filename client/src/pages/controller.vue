@@ -1,5 +1,5 @@
 <template>
-  <main class="flex flex-row bg-zinc-950 w-screen h-screen">
+  <main class="flex flex-row bg-zinc-950 w-dvw h-dvh">
     <div
       class="shrink-0 overflow-hidden transition-[width] duration-300 ease-in-out"
       :class="shownUI.controller.shown ? 'w-40' : 'w-0'">

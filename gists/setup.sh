@@ -82,4 +82,20 @@ else
     fi
 fi
 
+# rootCA を表示するか確認
+if command -v mkcert >/dev/null 2>&1; then
+    read -r -p "🔎 rootCA を表示しますか？詳しくはREADMEの「証明書のインストール」を確認してください。[y/N]: " SHOW_ROOTCA
+    case "$SHOW_ROOTCA" in
+        [Yy])
+            echo "📂 Opening mkcert CAROOT..."
+            open "$(mkcert -CAROOT)"
+            ;;
+        *)
+            echo "⏭ Skipping rootCA display."
+            ;;
+    esac
+else
+    echo "❌ mkcert is not installed"
+fi
+
 echo "🎉 Setup complete!"
