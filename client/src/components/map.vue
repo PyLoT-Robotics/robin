@@ -1,78 +1,63 @@
 <template>
-    <div
-        ref="viewport"
-        class="relative w-full h-full text-white overflow-hidden touch-none"
-        @wheel.prevent="handleWheel"
-        @pointerdown="handlePointerDown"
-        @pointermove="handlePointerMove"
-        @pointerup="handlePointerUp"
-        @pointercancel="handlePointerUp"
-        @pointerleave="handlePointerUp"
-        @dblclick="fitMapToViewport">
-        <canvas
-            ref="canvas"
-            class="absolute left-0 top-0"
-            :style="canvasTransformStyle"></canvas>
-        <canvas
-            ref="costmapCanvas"
-            class="absolute left-0 top-0 pointer-events-none"
-            :style="canvasTransformStyle"></canvas>
-        <canvas
-            ref="scanCanvas"
-            class="absolute left-0 top-0 pointer-events-none"
-            :style="canvasTransformStyle"></canvas>
-        <div class="absolute right-2 top-2 z-10 flex flex-col gap-1">
+    <div class="w-full h-full flex flex-col text-zinc-400">
+        <div class="flex flex-wrap justify-center border-b border-border">
             <button
-                type="button"
-                class="h-9 w-9 rounded bg-zinc-900/70 border border-zinc-500 text-lg"
-                @click="zoomIn">
-                +
+                class="flex flex-row items-center gap-2 border-x border-border px-4 py-2 transition-colors"
+                :class="isInitialPoseMode ? 'bg-orange-500/30 text-orange-200' : ''"
+                @click="toggleInitialPoseMode">
+                <Icon
+                    icon="material-symbols:pin-drop"
+                    class="size-6"/>
+                <p class="text-2xl">2D Pose Estimate</p>
             </button>
-            <button
-                type="button"
-                class="h-9 w-9 rounded bg-zinc-900/70 border border-zinc-500 text-lg"
-                @click="zoomOut">
-                -
+            <button class="flex flex-row items-center gap-2 border-x border-border px-4 py-2">
+                <Icon
+                    icon="material-symbols:pin-drop-outline"
+                    class="size-6"/>
+                <p class="text-2xl">Nav2 Goal</p>
             </button>
-            <button
-                type="button"
-                class="h-9 w-9 rounded bg-zinc-900/70 border border-zinc-500 text-xs"
-                @click="fitMapToViewport">
-                Fit
-            </button>
-            <button
-                type="button"
-                class="h-9 w-9 rounded border text-[10px]"
-                :class="showScan ? 'bg-emerald-500/80 border-emerald-300 text-emerald-50' : 'bg-zinc-900/70 border-zinc-500 text-zinc-200'"
-                @click="toggleScanOverlay">
-                Scan
-            </button>
-            <button
-                type="button"
-                class="h-9 w-9 rounded border text-[10px]"
-                :class="showGlobalCostmap ? 'bg-amber-500/80 border-amber-300 text-amber-50' : 'bg-zinc-900/70 border-zinc-500 text-zinc-200'"
-                @click="toggleGlobalCostmapOverlay">
-                GCost
-            </button>
-            <button
-                type="button"
-                class="h-9 w-9 rounded border text-[10px]"
-                :class="showLocalCostmap ? 'bg-cyan-500/80 border-cyan-300 text-cyan-50' : 'bg-zinc-900/70 border-zinc-500 text-zinc-200'"
-                @click="toggleLocalCostmapOverlay">
-                LCost
-            </button>
+        </div>
+        <div
+            ref="viewport"
+            class="relative touch-none grow overflow-hidden"
+            :style="{ cursor: viewportCursor }"
+            @wheel.prevent="handleWheel"
+            @pointerdown="handlePointerDown"
+            @pointermove="handlePointerMove"
+            @pointerup="handlePointerUp"
+            @pointercancel="handlePointerUp"
+            @pointerleave="handlePointerUp"
+            @dblclick="fitMapToViewport">
+            <canvas
+                ref="canvas"
+                class="absolute left-0 top-0"
+                :style="canvasTransformStyle"></canvas>
+            <canvas
+                ref="costmapCanvas"
+                class="absolute left-0 top-0 pointer-events-none"
+                :style="canvasTransformStyle"></canvas>
+            <canvas
+                ref="scanCanvas"
+                class="absolute left-0 top-0 pointer-events-none"
+                :style="canvasTransformStyle"></canvas>
+            <canvas
+                ref="poseOverlayCanvas"
+                class="absolute inset-0 pointer-events-none"></canvas>
+            
         </div>
     </div>
 </template>
 <script setup lang="ts">
 import { createTopic, type Ros, type Topic } from "@/api/ros";
 import { computed, onBeforeUnmount, onMounted, ref } from "vue";
+import { Icon } from "@iconify/vue";
 
 const { ros } = defineProps<{ ros: Ros }>();
 const mapTopic = "/map"
 const scanTopic = "/scan"
 const tfTopic = "/tf"
 const tfStaticTopic = "/tf_static"
+const initialPoseTopic = "/initialpose"
 const globalCostmapTopics = [
     "/move_base/global_costmap/costmap",
     "/global_costmap/costmap"
@@ -88,6 +73,7 @@ let tfSubscriber: Topic | null = null;
 let tfStaticSubscriber: Topic | null = null;
 let globalCostmapSubscriber: Topic | null = null;
 let localCostmapSubscriber: Topic | null = null;
+let initialPosePublisher: Topic | null = null;
 
 type Pose2D = {
     x: number
@@ -176,10 +162,12 @@ function resolveExistingTopicType(topicName: string) {
 const canvas = ref<HTMLCanvasElement>();
 const costmapCanvas = ref<HTMLCanvasElement>();
 const scanCanvas = ref<HTMLCanvasElement>();
+const poseOverlayCanvas = ref<HTMLCanvasElement>();
 const viewport = ref<HTMLDivElement>();
 let animationFrameId: number | null = null;
 let scanAnimationFrameId: number | null = null;
 let costmapAnimationFrameId: number | null = null;
+let poseOverlayAnimationFrameId: number | null = null;
 let pendingFrame: { width: number; height: number; data: ArrayLike<number> } | null = null;
 let latestScan: {
     angleMin: number;
@@ -205,6 +193,8 @@ const translateY = ref(0);
 const showScan = ref(true);
 const showGlobalCostmap = ref(true);
 const showLocalCostmap = ref(true);
+const isInitialPoseMode = ref(false);
+const isPoseDragging = ref(false);
 
 const MIN_SCALE = 0.25;
 const MAX_SCALE = 8;
@@ -215,13 +205,29 @@ let dragStartX = 0;
 let dragStartY = 0;
 let dragOriginX = 0;
 let dragOriginY = 0;
+let activePointerId: number | null = null;
+let poseDragStartScreen: { x: number; y: number } | null = null;
+let poseDragCurrentScreen: { x: number; y: number } | null = null;
+let poseDragStartWorld: { x: number; y: number } | null = null;
 
 const canvasTransformStyle = computed(() => ({
     transform: `translate(${translateX.value}px, ${translateY.value}px) scale(${scale.value}) rotate(${MAP_ROTATION_DEG}deg)`,
     transformOrigin: `${mapWidth.value / 2}px ${mapHeight.value / 2}px`,
-    imageRendering: "pixelated" as const,
-    cursor: isDragging.value ? "grabbing" : "grab"
+    imageRendering: "pixelated" as const
 }));
+
+const viewportCursor = computed(() => {
+    if (isInitialPoseMode.value) {
+        if (isPoseDragging.value) {
+            return "crosshair";
+        }
+        return "cell";
+    }
+    if (isDragging.value) {
+        return "grabbing";
+    }
+    return "grab";
+});
 
 function toSafeDimension(value: unknown) {
     if (typeof value !== "number" || !Number.isFinite(value)) {
@@ -391,6 +397,184 @@ function mapWorldToPixel(worldX: number, worldY: number) {
     const pixelX = localX;
     const pixelY = mapHeight.value - 1 - localY;
     return { x: pixelX, y: pixelY };
+}
+
+function mapPixelToWorld(pixelX: number, pixelY: number) {
+    if (mapResolution.value <= 0 || mapWidth.value <= 0 || mapHeight.value <= 0) {
+        return null;
+    }
+
+    const localX = pixelX;
+    const localY = mapHeight.value - 1 - pixelY;
+    const cosYaw = Math.cos(mapOriginYaw.value);
+    const sinYaw = Math.sin(mapOriginYaw.value);
+    const worldX = mapOriginX.value + mapResolution.value * (cosYaw * localX - sinYaw * localY);
+    const worldY = mapOriginY.value + mapResolution.value * (sinYaw * localX + cosYaw * localY);
+    return { x: worldX, y: worldY };
+}
+
+function viewportPointToMapPixel(clientX: number, clientY: number) {
+    if (!viewport.value || mapWidth.value <= 0 || mapHeight.value <= 0 || scale.value <= 0) {
+        return null;
+    }
+
+    const rect = viewport.value.getBoundingClientRect();
+    const px = clientX - rect.left;
+    const py = clientY - rect.top;
+
+    const cx = mapWidth.value / 2;
+    const cy = mapHeight.value / 2;
+    const untransformedX = px - translateX.value - cx;
+    const untransformedY = py - translateY.value - cy;
+    const scaledX = untransformedX / scale.value;
+    const scaledY = untransformedY / scale.value;
+    const rad = (MAP_ROTATION_DEG * Math.PI) / 180;
+    const cos = Math.cos(rad);
+    const sin = Math.sin(rad);
+
+    const localX = scaledX * cos + scaledY * sin + cx;
+    const localY = -scaledX * sin + scaledY * cos + cy;
+    return { x: localX, y: localY };
+}
+
+function viewportPointToWorld(clientX: number, clientY: number) {
+    const pixel = viewportPointToMapPixel(clientX, clientY);
+    if (!pixel) {
+        return null;
+    }
+    return mapPixelToWorld(pixel.x, pixel.y);
+}
+
+function yawToQuaternion(yaw: number) {
+    const half = yaw / 2;
+    return {
+        x: 0,
+        y: 0,
+        z: Math.sin(half),
+        w: Math.cos(half)
+    };
+}
+
+function schedulePoseOverlayDraw() {
+    if (poseOverlayAnimationFrameId !== null) {
+        return;
+    }
+
+    poseOverlayAnimationFrameId = window.requestAnimationFrame(() => {
+        poseOverlayAnimationFrameId = null;
+        drawPoseOverlay();
+    });
+}
+
+function drawPoseOverlay() {
+    if (!poseOverlayCanvas.value || !viewport.value) {
+        return;
+    }
+
+    const ctx = poseOverlayCanvas.value.getContext("2d");
+    if (!ctx) {
+        return;
+    }
+
+    const width = viewport.value.clientWidth;
+    const height = viewport.value.clientHeight;
+    if (width <= 0 || height <= 0) {
+        return;
+    }
+
+    if (poseOverlayCanvas.value.width !== width) {
+        poseOverlayCanvas.value.width = width;
+    }
+    if (poseOverlayCanvas.value.height !== height) {
+        poseOverlayCanvas.value.height = height;
+    }
+
+    ctx.clearRect(0, 0, width, height);
+
+    if (!isInitialPoseMode.value || !isPoseDragging.value || !poseDragStartScreen || !poseDragCurrentScreen) {
+        return;
+    }
+
+    const from = poseDragStartScreen;
+    const to = poseDragCurrentScreen;
+    const dx = to.x - from.x;
+    const dy = to.y - from.y;
+    const length = Math.hypot(dx, dy);
+    if (length < 2) {
+        return;
+    }
+
+    const ux = dx / length;
+    const uy = dy / length;
+    const headSize = Math.max(10, Math.min(22, length * 0.25));
+    const shaftEndX = to.x - ux * headSize;
+    const shaftEndY = to.y - uy * headSize;
+    const normalX = -uy;
+    const normalY = ux;
+
+    ctx.strokeStyle = "rgba(245, 158, 11, 0.95)";
+    ctx.fillStyle = "rgba(245, 158, 11, 0.95)";
+    ctx.lineWidth = 3;
+    ctx.lineCap = "round";
+
+    ctx.beginPath();
+    ctx.moveTo(from.x, from.y);
+    ctx.lineTo(shaftEndX, shaftEndY);
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.moveTo(to.x, to.y);
+    ctx.lineTo(shaftEndX + normalX * headSize * 0.45, shaftEndY + normalY * headSize * 0.45);
+    ctx.lineTo(shaftEndX - normalX * headSize * 0.45, shaftEndY - normalY * headSize * 0.45);
+    ctx.closePath();
+    ctx.fill();
+}
+
+function ensureInitialPosePublisher() {
+    if (initialPosePublisher) {
+        return initialPosePublisher;
+    }
+
+    initialPosePublisher = createTopic(ros, initialPoseTopic, "geometry_msgs/PoseWithCovarianceStamped");
+    return initialPosePublisher;
+}
+
+function publishInitialPose(position: { x: number; y: number }, yaw: number) {
+    const publisher = ensureInitialPosePublisher();
+    const quaternion = yawToQuaternion(yaw);
+    const covariance = Array(36).fill(0);
+    covariance[0] = 0.25;
+    covariance[7] = 0.25;
+    covariance[35] = 0.06853891945200942;
+
+    publisher.publish({
+        header: {
+            frame_id: mapFrameId.value
+        },
+        pose: {
+            pose: {
+                position: {
+                    x: position.x,
+                    y: position.y,
+                    z: 0
+                },
+                orientation: quaternion
+            },
+            covariance
+        }
+    });
+}
+
+function toggleInitialPoseMode() {
+    isInitialPoseMode.value = !isInitialPoseMode.value;
+    if (!isInitialPoseMode.value) {
+        isPoseDragging.value = false;
+        poseDragStartScreen = null;
+        poseDragCurrentScreen = null;
+        poseDragStartWorld = null;
+        activePointerId = null;
+    }
+    schedulePoseOverlayDraw();
 }
 
 function drawScanOverlay() {
@@ -676,6 +860,7 @@ function fitMapToViewport() {
     scale.value = fitScale;
     translateX.value = (viewportWidth - rotatedSize.width * fitScale) / 2;
     translateY.value = (viewportHeight - rotatedSize.height * fitScale) / 2;
+    schedulePoseOverlayDraw();
 }
 
 function zoomAt(nextScale: number, centerX: number, centerY: number) {
@@ -688,6 +873,7 @@ function zoomAt(nextScale: number, centerX: number, centerY: number) {
     translateX.value = centerX - ((centerX - translateX.value) * safeScale) / prevScale;
     translateY.value = centerY - ((centerY - translateY.value) * safeScale) / prevScale;
     scale.value = safeScale;
+    schedulePoseOverlayDraw();
 }
 
 function zoomIn() {
@@ -720,23 +906,93 @@ function handlePointerDown(event: PointerEvent) {
     if (event.button !== 0) {
         return;
     }
+
+    if (!viewport.value) {
+        return;
+    }
+
+    viewport.value.setPointerCapture(event.pointerId);
+
+    if (isInitialPoseMode.value) {
+        const world = viewportPointToWorld(event.clientX, event.clientY);
+        if (!world) {
+            return;
+        }
+
+        const rect = viewport.value.getBoundingClientRect();
+        poseDragStartScreen = {
+            x: event.clientX - rect.left,
+            y: event.clientY - rect.top
+        };
+        poseDragCurrentScreen = { ...poseDragStartScreen };
+        poseDragStartWorld = world;
+        isPoseDragging.value = true;
+        activePointerId = event.pointerId;
+        schedulePoseOverlayDraw();
+        return;
+    }
+
     isDragging.value = true;
     dragStartX = event.clientX;
     dragStartY = event.clientY;
     dragOriginX = translateX.value;
     dragOriginY = translateY.value;
+    activePointerId = event.pointerId;
 }
 
 function handlePointerMove(event: PointerEvent) {
-    if (!isDragging.value) {
+    if (isInitialPoseMode.value) {
+        if (!isPoseDragging.value || event.pointerId !== activePointerId || !viewport.value) {
+            return;
+        }
+        const rect = viewport.value.getBoundingClientRect();
+        poseDragCurrentScreen = {
+            x: event.clientX - rect.left,
+            y: event.clientY - rect.top
+        };
+        schedulePoseOverlayDraw();
         return;
     }
+
+    if (!isDragging.value || event.pointerId !== activePointerId) {
+        return;
+    }
+
     translateX.value = dragOriginX + (event.clientX - dragStartX);
     translateY.value = dragOriginY + (event.clientY - dragStartY);
+    schedulePoseOverlayDraw();
 }
 
-function handlePointerUp() {
+function handlePointerUp(event: PointerEvent) {
+    if (viewport.value && viewport.value.hasPointerCapture(event.pointerId)) {
+        viewport.value.releasePointerCapture(event.pointerId);
+    }
+
+    if (isInitialPoseMode.value) {
+        if (!isPoseDragging.value || event.pointerId !== activePointerId) {
+            return;
+        }
+
+        const startWorld = poseDragStartWorld;
+        const endWorld = viewportPointToWorld(event.clientX, event.clientY);
+        if (startWorld && endWorld) {
+            const dx = endWorld.x - startWorld.x;
+            const dy = endWorld.y - startWorld.y;
+            const yaw = Math.hypot(dx, dy) < 1e-4 ? 0 : Math.atan2(dy, dx);
+            publishInitialPose(startWorld, yaw);
+        }
+
+        isPoseDragging.value = false;
+        poseDragStartScreen = null;
+        poseDragCurrentScreen = null;
+        poseDragStartWorld = null;
+        activePointerId = null;
+        schedulePoseOverlayDraw();
+        return;
+    }
+
     isDragging.value = false;
+    activePointerId = null;
 }
 
 function drawMap(width: number, height: number, data: ArrayLike<number>) {
@@ -795,6 +1051,7 @@ function drawMap(width: number, height: number, data: ArrayLike<number>) {
 
     scheduleCostmapDraw();
     scheduleScanDraw();
+    schedulePoseOverlayDraw();
 }
 
 function scheduleDraw(width: number, height: number, data: ArrayLike<number>) {
@@ -817,6 +1074,7 @@ function scheduleDraw(width: number, height: number, data: ArrayLike<number>) {
 
 onMounted(async () => {
     window.addEventListener("resize", fitMapToViewport);
+    window.addEventListener("resize", schedulePoseOverlayDraw);
 
     try {
         const topicType = await resolveTopicType(mapTopic);
@@ -968,6 +1226,7 @@ onMounted(async () => {
 
 onBeforeUnmount(() => {
     window.removeEventListener("resize", fitMapToViewport);
+    window.removeEventListener("resize", schedulePoseOverlayDraw);
 
     if (!mapSubscriber) {
         if (scanSubscriber) {
@@ -1001,6 +1260,10 @@ onBeforeUnmount(() => {
         if (costmapAnimationFrameId !== null) {
             window.cancelAnimationFrame(costmapAnimationFrameId);
             costmapAnimationFrameId = null;
+        }
+        if (poseOverlayAnimationFrameId !== null) {
+            window.cancelAnimationFrame(poseOverlayAnimationFrameId);
+            poseOverlayAnimationFrameId = null;
         }
         pendingFrame = null;
         latestScan = null;
@@ -1042,6 +1305,10 @@ onBeforeUnmount(() => {
     if (costmapAnimationFrameId !== null) {
         window.cancelAnimationFrame(costmapAnimationFrameId);
         costmapAnimationFrameId = null;
+    }
+    if (poseOverlayAnimationFrameId !== null) {
+        window.cancelAnimationFrame(poseOverlayAnimationFrameId);
+        poseOverlayAnimationFrameId = null;
     }
     pendingFrame = null;
     latestScan = null;
