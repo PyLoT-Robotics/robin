@@ -1,6 +1,8 @@
 import { computed } from "vue";
 
 type LocalStorageKeys =
+  | "CameraTopic"
+  | "LogTopic"
   | "WebSocketURL"
 
 export function getLocalStorage(key: LocalStorageKeys){
