@@ -29,7 +29,19 @@ https://zenn.dev/takumiabe21/articles/645a38c0c18389 の「○iPhoneのSafariか
 また今度書きます、、
 
 # 起動する
+Topicの送受信に必要なRosbrdige_serverの起動
 ```bash
 ros2 launch rosbridge_server rosbridge_websocket_launch.xml
 ```
+クライアントの起動
 ```bash
+colcon build
+source install/setup.bash
+ros2 run robin client
+```
+(2秒以内くらいにQRコードがでれば成功です、でなければ何かがうまく行ってないので`sh gist/setup.sh`をしてください)
+映像送信用のVideo_publisherの起動
+```bash
+source install/setup.bash
+ros2 run robin video_publisher
+```

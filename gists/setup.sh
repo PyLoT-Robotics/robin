@@ -61,8 +61,34 @@ if [ "$BUN_OK" = true ] && [ "$VP_OK" = true ]; then
     fi
 fi
 
-#TODO:mkcertが入っているかの確認もする
-#TODO:ROS bridge serverも入っているか確認する
+# mkcert 存在確認
+if command -v mkcert >/dev/null 2>&1; then
+    MKCERT_OK=true
+else
+    MKCERT_OK=false
+fi
+
+# mkcert の表示
+if [ "$MKCERT_OK" = true ]; then
+    echo "✅ mkcert is installed: $(mkcert --version 2>/dev/null)"
+else
+    echo "❌ mkcert is not installed"
+    echo "Please install mkcert: https://github.com/FiloSottile/mkcert"
+fi
+
+# ROS bridge server 存在確認
+if ros2 pkg prefix rosbridge_server >/dev/null 2>&1; then
+    ROSBRIDGE_OK=true
+else
+    ROSBRIDGE_OK=false
+fi
+
+# ROS bridge server の表示
+if [ "$ROSBRIDGE_OK" = true ]; then
+    echo "✅ ROS bridge server is installed"
+else
+    echo "❌ ROS bridge server is not installed"
+fi
 
 # client/certs ディレクトリ確認
 if [ -d "client/certs" ]; then
@@ -80,6 +106,7 @@ else
     if [ -d "client" ]; then
         echo "🔐 client/certs not found. Running 'sh create_cert.sh' in client..."
         (cd client && sh create_cert.sh)
+        exho "✅ Certificates created in client/certs"
     else
         echo "❌ client directory not found"
     fi
