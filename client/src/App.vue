@@ -50,6 +50,13 @@
           <ArmController/>
         </div>
         <div
+          v-if="shownUI.map.shown"
+          class="grow overflow-hidden"
+          :class="isPortrait ? 'h-0' : 'w-0'">
+          <Map
+            :ros/>
+        </div>
+        <div
           v-if="shownUI.settings.shown"
           class="grow overflow-hidden"
           :class="isPortrait ? 'h-0' : 'w-0'">
@@ -57,7 +64,7 @@
             :ros/>
         </div>
         <div
-          v-if="!shownUI.video.shown && !shownUI.console.shown && !shownUI.armController.shown && !shownUI.settings.shown"
+          v-if="!shownUI.video.shown && !shownUI.console.shown && !shownUI.armController.shown && !shownUI.map.shown && !shownUI.settings.shown"
           class="grow overflow-hidden grid place-content-center text-zinc-200 text-4xl"
           :class="isPortrait ? 'h-0' : 'w-0'">
           <p>No UI is selected</p>
@@ -102,6 +109,7 @@ import { Icon } from '@iconify/vue';
 import { onMounted, onUnmounted, reactive, ref, watch } from 'vue';
 import { createRos } from './api/ros';
 import Message from './components/message.vue';
+import Map from '@/components/map.vue';
 
 const isPortrait = ref(false);
 
@@ -134,8 +142,9 @@ const shownUI = reactive({
   chat: { icon: 'bi:chat-left-dots', shown: false, available: true },
   video: { icon: 'fa6-solid:video', shown: false, available: true },
   console: { icon: 'bi:terminal', shown: false, available: true },
+  map: { icon: 'bi:map', shown: false, available: true },
   armController: { icon: 'streamline-ultimate:factory-industrial-robot-arm-1-bold', shown: false, available: true },
-  settings: { icon: 'bi:gear-wide-connected', shown: false, available: true }
+  settings: { icon: 'bi:gear-wide-connected', shown: false, available: true },
 })
 
 const sticks = reactive({

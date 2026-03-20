@@ -1,8 +1,17 @@
 <template>
     <div class="w-full h-full bg-zinc-950 border-l border-zinc-800/80 flex flex-col min-h-0">
         <div class="shrink-0 px-3 py-2 border-b border-zinc-800/80 font-mono text-xs text-zinc-400">
-            <p>topic: {{ activeTopic }}</p>
+            <div class="flex items-center justify-between gap-2">
+                <p>topic: {{ activeTopic }}</p>
+                <button
+                    type="button"
+                    class="rounded border border-zinc-700 px-2 py-1 text-zinc-300 hover:bg-zinc-800"
+                    @click="isPaused = !isPaused">
+                    {{ isPaused ? "再開" : "停止" }}
+                </button>
+            </div>
             <p v-if="subscribeError" class="text-red-400">{{ subscribeError }}</p>
+            <p v-if="copiedMessage" class="text-emerald-400">{{ copiedMessage }}</p>
         </div>
 
         <div
@@ -14,13 +23,13 @@
             <p
                 v-for="entry in entries"
                 :key="entry.id"
-                class="whitespace-pre-wrap break-all">
+                class="whitespace-pre-wrap break-all cursor-pointer hover:text-emerald-300"
+                @click="copyLine(entry.line)">
                 {{ entry.line }}
             </p>
         </div>
     </div>
 </template>
-
 <script setup lang="ts">
 import { createService, createTopic, type Ros } from "@/api/ros";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
@@ -34,6 +43,10 @@ const MAX_LINES = 50;
 const entries = ref<{ id: number; line: string }[]>([]);
 const subscribeError = ref<string | null>(null);
 const logContainer = ref<HTMLElement | null>(null);
+const isPaused = ref(false);
+const copiedMessage = ref<string | null>(null);
+
+let copiedMessageTimer: ReturnType<typeof setTimeout> | null = null;
 
 let sequence = 0;
 let subscriber: Topic | null = null;
@@ -68,6 +81,23 @@ function stopSubscribe() {
     subscriber = null;
 }
 
+async function copyLine(line: string) {
+    try {
+        await navigator.clipboard.writeText(line);
+        copiedMessage.value = "ログをコピーしました";
+    } catch {
+        copiedMessage.value = "コピーに失敗しました";
+    }
+
+    if (copiedMessageTimer) {
+        clearTimeout(copiedMessageTimer);
+    }
+
+    copiedMessageTimer = setTimeout(() => {
+        copiedMessage.value = null;
+    }, 1200);
+}
+
 function resolveTopicType(topicName: string) {
     return new Promise<string>((resolve) => {
         topicTypeService.callService({ topic: topicName }, (result) => {
@@ -86,6 +116,9 @@ async function startSubscribe(topicName: string) {
         subscriber = createTopic(ros, topicName, topicType);
 
         subscriber.subscribe((message) => {
+            if (isPaused.value) {
+                return;
+            }
             const timestamp = new Date().toLocaleTimeString();
             pushLine(`[${timestamp}] ${topicName} ${JSON.stringify(message)}`);
         });
@@ -104,5 +137,8 @@ watch(
 
 onBeforeUnmount(() => {
     stopSubscribe();
+    if (copiedMessageTimer) {
+        clearTimeout(copiedMessageTimer);
+    }
 });
 </script>

@@ -1,35 +1,46 @@
 import * as RosLib from "roslib";
-import type { Ros } from "roslib";
+import type { Ros, Topic } from "roslib";
 import { ref } from "vue";
 
 export function createRos() {
-  const RosWebsocketUrl = `wss://${window.location.hostname}:${window.location.port}/ws`;
-  
-  const ros = new RosLib.Ros({
-    url: RosWebsocketUrl
-  });
-
-  ros.connect(RosWebsocketUrl);
-
-  ros.on("error", (error) => {
-    console.error("⚠ Error occurred in WebSocket Connection");
-    console.log(error)
-  });
-
-  setInterval(() => { console.log(ros.isConnected) }, 1000)
+  const wsProtocol = window.location.protocol === "https:" ? "wss" : "ws";
+  const RosWebsocketUrl = `${wsProtocol}://${window.location.host}/ws`;
+  const ros = new RosLib.Ros();
 
   const status = ref<"connected" | "closed" | "error">("closed");
   const error = ref<string | null>(null);
+  let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+  let reconnectDelayMs = 1000;
+
+  const scheduleReconnect = () => {
+    if (reconnectTimer) {
+      return;
+    }
+
+    reconnectTimer = setTimeout(() => {
+      reconnectTimer = null;
+      try {
+        ros.connect(RosWebsocketUrl);
+      } catch (err) {
+        error.value = err instanceof Error ? err.message : String(err);
+        scheduleReconnect();
+      }
+    }, reconnectDelayMs);
+
+    reconnectDelayMs = Math.min(reconnectDelayMs * 2, 15000);
+  };
 
   ros.on("connection", () => {
     status.value = "connected";
     error.value = null;
+    reconnectDelayMs = 1000;
     console.log("🙌 Connected to WebSocket");
   });
 
   ros.on("close", () => {
     status.value = "closed";
     console.log("👋 WebSocket Closed!");
+    scheduleReconnect();
   });
 
   ros.on("error", (err) => {
@@ -37,7 +48,10 @@ export function createRos() {
     error.value = err instanceof Error ? err.message : String(err);
     console.error("⚠ Error occurred in WebSocket Connection");
     console.log(err);
+    scheduleReconnect();
   });
+
+  ros.connect(RosWebsocketUrl);
 
   return { ros, status, error };
 }
@@ -62,4 +76,4 @@ export function createService(
   });
 }
 
-export type { Ros };
+export type { Ros, Topic };
