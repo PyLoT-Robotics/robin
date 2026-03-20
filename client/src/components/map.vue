@@ -248,6 +248,9 @@ let dragStartY = 0;
 let dragOriginX = 0;
 let dragOriginY = 0;
 let activePointerId: number | null = null;
+const activeTouchPoints = new Map<number, { x: number; y: number }>();
+let pinchDistance = 0;
+let pinchCenter: { x: number; y: number } | null = null;
 let poseDragStartScreen: { x: number; y: number } | null = null;
 let poseDragCurrentScreen: { x: number; y: number } | null = null;
 let poseDragStartWorld: { x: number; y: number } | null = null;
@@ -1174,8 +1177,90 @@ function handleWheel(event: WheelEvent) {
     zoomAt(scale.value * zoomFactor, centerX, centerY);
 }
 
+function getPointerPositionInViewport(event: PointerEvent) {
+    if (!viewport.value) {
+        return null;
+    }
+    const rect = viewport.value.getBoundingClientRect();
+    return {
+        x: event.clientX - rect.left,
+        y: event.clientY - rect.top
+    };
+}
+
+function readPinchState() {
+    const points = Array.from(activeTouchPoints.values());
+    const a = points[0];
+    const b = points[1];
+    if (!a || !b) {
+        return null;
+    }
+
+    const dx = b.x - a.x;
+    const dy = b.y - a.y;
+    const distance = Math.hypot(dx, dy);
+    if (!Number.isFinite(distance) || distance <= 0) {
+        return null;
+    }
+
+    return {
+        distance,
+        center: {
+            x: (a.x + b.x) / 2,
+            y: (a.y + b.y) / 2
+        }
+    };
+}
+
+function resetPinchState() {
+    pinchDistance = 0;
+    pinchCenter = null;
+}
+
+function beginPinchIfReady() {
+    const pinch = readPinchState();
+    if (!pinch) {
+        return false;
+    }
+
+    pinchDistance = pinch.distance;
+    pinchCenter = pinch.center;
+    isDragging.value = false;
+    activePointerId = null;
+    return true;
+}
+
+function updatePinchGesture() {
+    if (activeTouchPoints.size < 2) {
+        return false;
+    }
+
+    const pinch = readPinchState();
+    if (!pinch) {
+        return false;
+    }
+
+    if (pinchDistance <= 0 || !pinchCenter) {
+        pinchDistance = pinch.distance;
+        pinchCenter = pinch.center;
+        return true;
+    }
+
+    const centerDx = pinch.center.x - pinchCenter.x;
+    const centerDy = pinch.center.y - pinchCenter.y;
+    translateX.value += centerDx;
+    translateY.value += centerDy;
+
+    const zoomRatio = pinch.distance / pinchDistance;
+    zoomAt(scale.value * zoomRatio, pinch.center.x, pinch.center.y);
+
+    pinchDistance = pinch.distance;
+    pinchCenter = pinch.center;
+    return true;
+}
+
 function handlePointerDown(event: PointerEvent) {
-    if (event.button !== 0) {
+    if (event.pointerType === "mouse" && event.button !== 0) {
         return;
     }
 
@@ -1184,6 +1269,17 @@ function handlePointerDown(event: PointerEvent) {
     }
 
     viewport.value.setPointerCapture(event.pointerId);
+
+    const pointerPosition = getPointerPositionInViewport(event);
+
+    if (!isPoseInteractionMode.value && event.pointerType === "touch" && pointerPosition) {
+        activeTouchPoints.set(event.pointerId, pointerPosition);
+
+        if (activeTouchPoints.size >= 2) {
+            beginPinchIfReady();
+            return;
+        }
+    }
 
     if (isPoseInteractionMode.value) {
         const world = viewportPointToWorld(event.clientX, event.clientY);
@@ -1213,6 +1309,18 @@ function handlePointerDown(event: PointerEvent) {
 }
 
 function handlePointerMove(event: PointerEvent) {
+    if (!isPoseInteractionMode.value && event.pointerType === "touch") {
+        const pointerPosition = getPointerPositionInViewport(event);
+        if (pointerPosition) {
+            activeTouchPoints.set(event.pointerId, pointerPosition);
+        }
+
+        if (activeTouchPoints.size >= 2) {
+            updatePinchGesture();
+            return;
+        }
+    }
+
     if (isPoseInteractionMode.value) {
         if (!isPoseDragging.value || event.pointerId !== activePointerId || !viewport.value) {
             return;
@@ -1240,6 +1348,30 @@ function handlePointerUp(event: PointerEvent) {
         viewport.value.releasePointerCapture(event.pointerId);
     }
 
+    if (!isPoseInteractionMode.value && event.pointerType === "touch") {
+        activeTouchPoints.delete(event.pointerId);
+
+        if (activeTouchPoints.size >= 2) {
+            beginPinchIfReady();
+            return;
+        }
+
+        resetPinchState();
+
+        if (activeTouchPoints.size === 1) {
+            const remaining = activeTouchPoints.entries().next().value;
+            if (remaining) {
+                activePointerId = remaining[0];
+                dragStartX = remaining[1].x;
+                dragStartY = remaining[1].y;
+                dragOriginX = translateX.value;
+                dragOriginY = translateY.value;
+                isDragging.value = true;
+                return;
+            }
+        }
+    }
+
     if (isPoseInteractionMode.value) {
         if (!isPoseDragging.value || event.pointerId !== activePointerId) {
             return;
@@ -1263,6 +1395,8 @@ function handlePointerUp(event: PointerEvent) {
         poseDragCurrentScreen = null;
         poseDragStartWorld = null;
         activePointerId = null;
+        activeTouchPoints.clear();
+        resetPinchState();
         schedulePoseOverlayDraw();
         return;
     }
@@ -1581,6 +1715,8 @@ onBeforeUnmount(() => {
         latestGlobalCostmap = null;
         latestLocalCostmap = null;
         latestGlobalPath = null;
+        activeTouchPoints.clear();
+        resetPinchState();
         return;
     }
     mapSubscriber.unsubscribe();
@@ -1635,6 +1771,8 @@ onBeforeUnmount(() => {
     latestGlobalCostmap = null;
     latestLocalCostmap = null;
     latestGlobalPath = null;
+    activeTouchPoints.clear();
+    resetPinchState();
     tfTransforms.clear();
 });
 </script>
