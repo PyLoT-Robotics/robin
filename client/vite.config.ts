@@ -9,22 +9,22 @@ import vue from '@vitejs/plugin-vue'
 import { VitePWA } from 'vite-plugin-pwa'
 import tailwindcss from '@tailwindcss/vite'
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const certDir = path.resolve(__dirname, "certs");
-const certFile = path.join(certDir, "dev-cert.pem");
-const keyFile = path.join(certDir, "dev-key.pem");
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
+const certDir = path.resolve(__dirname, 'certs')
+const certFile = path.join(certDir, 'dev-cert.pem')
+const keyFile = path.join(certDir, 'dev-key.pem')
 
 const httpsOptions = (() => {
   if (!fs.existsSync(certFile) || !fs.existsSync(keyFile)) {
     throw new Error(
-      `HTTPS is enabled but certificate files were not found. Expected:\n- cert: ${certFile}\n- key: ${keyFile}\nCreate them with mkcert, then retry.`
-    );
+      `HTTPS is enabled but certificate files were not found. Expected:\n- cert: ${certFile}\n- key: ${keyFile}\nCreate them with mkcert, then retry.`,
+    )
   }
   return {
     cert: fs.readFileSync(certFile),
-    key: fs.readFileSync(keyFile)
-  };
-})();
+    key: fs.readFileSync(keyFile),
+  }
+})()
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -51,7 +51,7 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       devOptions: {
-        enabled: true
+        enabled: true,
       },
       manifest: {
         name: 'Robin',
@@ -84,7 +84,7 @@ export default defineConfig({
           },
         ],
       },
-    })
+    }),
   ],
   resolve: {
     alias: {
@@ -94,15 +94,15 @@ export default defineConfig({
   server: {
     https: httpsOptions,
     proxy: {
-      "/rosbridge": {
-        target: "ws://localhost:9090",
+      '/rosbridge': {
+        target: 'ws://localhost:9090',
         ws: true,
-        rewrite: (path) => path.replace(/^\/rosbridge/, ""),
+        rewrite: (path) => path.replace(/^\/rosbridge/, ''),
       },
-      "/video_publisher": {
-        target: "http://localhost:8080",
-        rewrite: (path) => path.replace(/^\/video_publisher/, ""),
-      }
-    }
-  }
+      '/video_publisher': {
+        target: 'http://localhost:8080',
+        rewrite: (path) => path.replace(/^\/video_publisher/, ''),
+      },
+    },
+  },
 })

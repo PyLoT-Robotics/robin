@@ -10,7 +10,8 @@
       <button
         v-if="permissionState === 'required'"
         class="mt-2 rounded border border-zinc-600 px-3 py-1 text-xs text-zinc-200 hover:bg-zinc-800"
-        @click="requestPermissionAndStart">
+        @click="requestPermissionAndStart"
+      >
         Enable Motion Sensor
       </button>
     </div>
@@ -32,11 +33,13 @@
   </div>
 </template>
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue';
+import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
 
 const acceleration = reactive({ x: 0, y: 0, z: 0 })
 const gyro = reactive({ x: 0, y: 0, z: 0 })
-const permissionState = ref<'unknown' | 'required' | 'granted' | 'denied' | 'unsupported'>('unknown')
+const permissionState = ref<'unknown' | 'required' | 'granted' | 'denied' | 'unsupported'>(
+  'unknown',
+)
 let isListening = false
 
 const statusText = computed(() => {

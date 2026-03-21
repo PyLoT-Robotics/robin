@@ -1,22 +1,22 @@
-import { createService, type Ros } from "@/api/ros";
-import { computed, ref } from "vue";
+import { createService, type Ros } from '@/api/ros'
+import { computed, ref } from 'vue'
 
 export function useTopicsList(ros: Ros) {
-  const topicsService = createService(ros, "/rosapi/topics", "rosapi/Topics");
+  const topicsService = createService(ros, '/rosapi/topics', 'rosapi/Topics')
 
-  const _topicsList = ref<string[]>([]);
-  const topicsList = computed<Readonly<string[]>>(() => _topicsList.value);
+  const _topicsList = ref<string[]>([])
+  const topicsList = computed<Readonly<string[]>>(() => _topicsList.value)
 
   function updateTopicsList() {
     return new Promise<void>((resolve) => {
-        topicsService.callService({}, (result) => {
-            _topicsList.value = (result as { topics: string[] }).topics;
-            resolve()
-        });
+      topicsService.callService({}, (result) => {
+        _topicsList.value = (result as { topics: string[] }).topics
+        resolve()
+      })
     })
   }
 
-  updateTopicsList();
+  updateTopicsList()
 
-  return { topicsList, updateTopicsList };
+  return { topicsList, updateTopicsList }
 }

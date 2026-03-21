@@ -2,7 +2,8 @@
   <main class="flex flex-row bg-zinc-950 w-dvw h-dvh">
     <div
       class="shrink-0 overflow-hidden transition-[width] duration-300 ease-in-out"
-      :class="shownUI.controller.shown ? 'w-40' : 'w-0'">
+      :class="shownUI.controller.shown ? 'w-40' : 'w-0'"
+    >
       <ControllerLeft
         class="transition-transform duration-300 ease-in-out"
         :class="shownUI.controller.shown ? 'translate-x-0' : '-translate-x-full'"
@@ -12,66 +13,79 @@
         v-model:leftUp="control.UP"
         v-model:leftLeft="control.LEFT"
         v-model:leftRight="control.RIGHT"
-        v-model:leftDown="control.DOWN"/>
+        v-model:leftDown="control.DOWN"
+      />
     </div>
     <div class="grow min-w-0 overflow-hidden flex flex-col">
       <div
         v-if="status === 'error' || status === 'closed'"
-        class="border-red-500 border-b text-red-400 bg-red-500/20 text-center py-2">
+        class="border-red-500 border-b text-red-400 bg-red-500/20 text-center py-2"
+      >
         Cannot Connect to ROS...
       </div>
       <div
         class="shrink-0 overflow-hidden transition-[height] duration-300 ease-in-out"
-        :class="shownUI.chat.shown ? 'h-12' : 'h-0'">
+        :class="shownUI.chat.shown ? 'h-12' : 'h-0'"
+      >
         <div
           class="border-b border-border h-12 transition-transform duration-300 ease-in-out"
-          :class="shownUI.chat.shown ? 'translate-y-0' : '-translate-y-full'">
-          <Message
-            :ros/>
+          :class="shownUI.chat.shown ? 'translate-y-0' : '-translate-y-full'"
+        >
+          <Message :ros />
         </div>
       </div>
       <div
         class="grow h-0 flex"
         :class="{
-          'flex-col': isPortrait
-        }">
+          'flex-col': isPortrait,
+        }"
+      >
         <div
           v-if="shownUI.video.shown"
           class="grow overflow-hidden"
-          :class="isPortrait ? 'h-0' : 'w-0'">
-          <LiveVideo/>
+          :class="isPortrait ? 'h-0' : 'w-0'"
+        >
+          <LiveVideo />
         </div>
         <div
           v-if="shownUI.console.shown"
           class="grow overflow-hidden text-zinc-200"
-          :class="isPortrait ? 'h-0' : 'w-0'">
-          <Log
-            :ros/>
+          :class="isPortrait ? 'h-0' : 'w-0'"
+        >
+          <Log :ros />
         </div>
         <div
           v-if="shownUI.armController.shown"
           class="grow overflow-hidden"
-          :class="isPortrait ? 'h-0' : 'w-0'">
-          <ArmController/>
+          :class="isPortrait ? 'h-0' : 'w-0'"
+        >
+          <ArmController />
         </div>
         <div
           v-if="shownUI.map.shown"
           class="grow overflow-hidden"
-          :class="isPortrait ? 'h-0' : 'w-0'">
-          <Map
-            :ros/>
+          :class="isPortrait ? 'h-0' : 'w-0'"
+        >
+          <Map :ros />
         </div>
         <div
           v-if="shownUI.settings.shown"
           class="grow overflow-hidden"
-          :class="isPortrait ? 'h-0' : 'w-0'">
-          <Settings
-            :ros/>
+          :class="isPortrait ? 'h-0' : 'w-0'"
+        >
+          <Settings :ros />
         </div>
         <div
-          v-if="!shownUI.video.shown && !shownUI.console.shown && !shownUI.armController.shown && !shownUI.map.shown && !shownUI.settings.shown"
+          v-if="
+            !shownUI.video.shown &&
+            !shownUI.console.shown &&
+            !shownUI.armController.shown &&
+            !shownUI.map.shown &&
+            !shownUI.settings.shown
+          "
           class="grow overflow-hidden grid place-content-center text-zinc-200 text-4xl"
-          :class="isPortrait ? 'h-0' : 'w-0'">
+          :class="isPortrait ? 'h-0' : 'w-0'"
+        >
           <p>No UI is selected</p>
         </div>
       </div>
@@ -84,17 +98,17 @@
           :class="{
             'bg-zinc-600 text-zinc-900': button.shown,
             'text-zinc-400': !button.shown,
-            'hidden': !button.available
-          }">
-          <Icon
-            :icon="button.icon"
-            class="text-2xl"/>
+            hidden: !button.available,
+          }"
+        >
+          <Icon :icon="button.icon" class="text-2xl" />
         </button>
       </div>
     </div>
     <div
       class="shrink-0 overflow-hidden transition-[width] duration-300 ease-in-out"
-      :class="shownUI.controller.shown ? 'w-40' : 'w-0'">
+      :class="shownUI.controller.shown ? 'w-40' : 'w-0'"
+    >
       <ControllerRight
         class="transition-transform duration-300 ease-in-out"
         :class="shownUI.controller.shown ? 'translate-x-0' : 'translate-x-full'"
@@ -104,47 +118,48 @@
         v-model:rightUp="control.Y"
         v-model:rightLeft="control.X"
         v-model:rightRight="control.B"
-        v-model:rightDown="control.A"/>
+        v-model:rightDown="control.A"
+      />
     </div>
   </main>
 </template>
 <script setup lang="ts">
-import ArmController from '@/components/controller/armController.vue';
-import ControllerLeft from '@/components/controller/controller_left.vue';
-import ControllerRight from '@/components/controller/controller_right.vue';
-import LiveVideo from '@/components/live_video.vue';
-import Settings from '@/components/settings.vue';
-import Log from '@/components/log.vue';
-import { Icon } from '@iconify/vue';
-import { onMounted, onUnmounted, reactive, ref, watch } from 'vue';
-import { createRos } from './api/ros';
-import Message from './components/message.vue';
-import Map from '@/components/map.vue';
-import { createControllerTopicInterval } from './utils/createControllerTopicInterval';
-import type { Control } from './model/control';
+import ArmController from '@/components/controller/armController.vue'
+import ControllerLeft from '@/components/controller/controller_left.vue'
+import ControllerRight from '@/components/controller/controller_right.vue'
+import LiveVideo from '@/components/live_video.vue'
+import Settings from '@/components/settings.vue'
+import Log from '@/components/log.vue'
+import { Icon } from '@iconify/vue'
+import { onMounted, onUnmounted, reactive, ref, watch } from 'vue'
+import { createRos } from './api/ros'
+import Message from './components/message.vue'
+import Map from '@/components/map.vue'
+import { createControllerTopicInterval } from './utils/createControllerTopicInterval'
+import type { Control } from './model/control'
 
-const isPortrait = ref(false);
+const isPortrait = ref(false)
 
 const updateIsPortrait = () => {
-  isPortrait.value = window.innerHeight > window.innerWidth;
-};
+  isPortrait.value = window.innerHeight > window.innerWidth
+}
 
 onMounted(() => {
-  updateIsPortrait();
-  window.addEventListener('resize', updateIsPortrait);
-  window.addEventListener('orientationchange', updateIsPortrait);
-});
+  updateIsPortrait()
+  window.addEventListener('resize', updateIsPortrait)
+  window.addEventListener('orientationchange', updateIsPortrait)
+})
 
 onUnmounted(() => {
-  window.removeEventListener('resize', updateIsPortrait);
-  window.removeEventListener('orientationchange', updateIsPortrait);
-});
+  window.removeEventListener('resize', updateIsPortrait)
+  window.removeEventListener('orientationchange', updateIsPortrait)
+})
 
 watch(isPortrait, (changedToPortrait) => {
-  if(changedToPortrait){
+  if (changedToPortrait) {
     shownUI.controller.shown = false
     shownUI.controller.available = false
-  }else{
+  } else {
     shownUI.controller.available = true
   }
 })
@@ -155,7 +170,11 @@ const shownUI = reactive({
   video: { icon: 'fa6-solid:video', shown: false, available: true },
   console: { icon: 'bi:terminal', shown: false, available: true },
   map: { icon: 'bi:map', shown: false, available: true },
-  armController: { icon: 'streamline-ultimate:factory-industrial-robot-arm-1-bold', shown: false, available: true },
+  armController: {
+    icon: 'streamline-ultimate:factory-industrial-robot-arm-1-bold',
+    shown: false,
+    available: true,
+  },
   settings: { icon: 'bi:gear-wide-connected', shown: false, available: true },
 })
 
@@ -174,12 +193,12 @@ const control = reactive<Control>({
   RIGHT: false,
   leftStick: {
     x: 0,
-    y: 0
+    y: 0,
   },
   rightStick: {
     x: 0,
-    y: 0
-  }
+    y: 0,
+  },
 })
 
 const { ros, status } = createRos()
@@ -187,16 +206,19 @@ const { ros, status } = createRos()
 let joyInterval: number | null = null
 const joyTopicTPS = 30
 
-watch(() => shownUI.controller.shown, (shown) => {
-  console.log("hi!")
-  if( shown ){
-    joyInterval = createControllerTopicInterval(ros, joyTopicTPS, control)
-    console.log("startjoyinterval")
-  }else{
-    if(joyInterval){
-      clearInterval(joyInterval)
-      joyInterval = null
+watch(
+  () => shownUI.controller.shown,
+  (shown) => {
+    console.log('hi!')
+    if (shown) {
+      joyInterval = createControllerTopicInterval(ros, joyTopicTPS, control)
+      console.log('startjoyinterval')
+    } else {
+      if (joyInterval) {
+        clearInterval(joyInterval)
+        joyInterval = null
+      }
     }
-  }
-})
+  },
+)
 </script>

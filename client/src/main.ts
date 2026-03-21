@@ -9,5 +9,4 @@ if (webSocketUrlParam) {
   localStorage.setItem('WebSocketURL', webSocketUrlParam)
 }
 
-createApp(App)
-  .mount('#app')
+createApp(App).mount('#app')

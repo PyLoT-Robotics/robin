@@ -26,6 +26,31 @@ export default defineConfigWithVueTs(
     files: ['src/**/__tests__/*'],
   },
 
+  {
+    name: 'app/restrict-roslib-imports',
+    files: ['src/**/*.{vue,ts,mts,tsx}'],
+    ignores: ['src/api/ros.ts'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          paths: [
+            {
+              name: 'roslib',
+              message: 'Use src/api/ros.ts instead of importing roslib directly.',
+            },
+          ],
+          patterns: [
+            {
+              group: ['roslib/*'],
+              message: 'Use src/api/ros.ts instead of importing roslib directly.',
+            },
+          ],
+        },
+      ],
+    },
+  },
+
   ...pluginOxlint.buildFromOxlintConfigFile('.oxlintrc.json'),
 
   skipFormatting,

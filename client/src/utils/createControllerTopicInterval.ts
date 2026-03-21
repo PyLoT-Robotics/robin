@@ -1,10 +1,10 @@
-import type { Control } from "../model/control";
-import { createTopic, type Ros } from "@/api/ros";
+import type { Control } from '../model/control'
+import { createTopic, type Ros } from '@/api/ros'
 
-const JOY_TOPIC_NAME = "/joy"
-const JOY_TOPIC_TYPE_ROS1 = "sensor_msgs/Joy"
-const JOY_TOPIC_TYPE_ROS2 = "sensor_msgs/msg/Joy"
-const STRING_TOPIC_TYPE = "std_msgs/String"
+const JOY_TOPIC_NAME = '/joy'
+const JOY_TOPIC_TYPE_ROS1 = 'sensor_msgs/Joy'
+const JOY_TOPIC_TYPE_ROS2 = 'sensor_msgs/msg/Joy'
+const STRING_TOPIC_TYPE = 'std_msgs/String'
 
 interface JoyMessage {
   axes: number[]
@@ -16,12 +16,12 @@ interface StringMessage {
 }
 
 function getDpadValue(a: boolean, b: boolean): number {
-  return a ? (b ? 0 : 1) : (b ? -1 : 0);
+  return a ? (b ? 0 : 1) : b ? -1 : 0
 }
 
 function convertControlToJoyMessage(controls: Control): JoyMessage {
-  const dpadX = getDpadValue(controls.RIGHT, controls.LEFT);
-  const dpadY = getDpadValue(controls.DOWN, controls.UP);
+  const dpadX = getDpadValue(controls.RIGHT, controls.LEFT)
+  const dpadY = getDpadValue(controls.DOWN, controls.UP)
   return {
     axes: [
       controls.leftStick.x,
@@ -44,9 +44,9 @@ function convertControlToJoyMessage(controls: Control): JoyMessage {
       controls.RT ? 1 : 0,
       0,
       0,
-      0
+      0,
     ],
-  };
+  }
 }
 
 function normalizeJoyTopicType(topicType: string): string {
@@ -61,7 +61,7 @@ function normalizeJoyTopicType(topicType: string): string {
   return JOY_TOPIC_TYPE_ROS1
 }
 
-export function createControllerTopicInterval(ros: Ros, TPS: number, controls: Control){
+export function createControllerTopicInterval(ros: Ros, TPS: number, controls: Control) {
   let joyTopicType = JOY_TOPIC_TYPE_ROS1
   let joyTopic = createTopic(ros, JOY_TOPIC_NAME, joyTopicType)
   let resolved = false
@@ -87,5 +87,5 @@ export function createControllerTopicInterval(ros: Ros, TPS: number, controls: C
     }
 
     joyTopic.publish(joyMessage)
-  }, 1000 / TPS);
+  }, 1000 / TPS)
 }
