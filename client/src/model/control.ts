@@ -1,4 +1,6 @@
 export interface Control {
+  LT: boolean
+  RT: boolean
   LB: boolean
   RB: boolean
   A: boolean

@@ -6,8 +6,13 @@
       <ControllerLeft
         class="transition-transform duration-300 ease-in-out"
         :class="shownUI.controller.shown ? 'translate-x-0' : '-translate-x-full'"
-        v-model:leftStick="sticks.left"
-        v-model:leftButtons="buttons.left"/>
+        v-model:leftStick="control.leftStick"
+        v-model:leftTrigger="control.LT"
+        v-model:leftBumper="control.LB"
+        v-model:leftUp="control.UP"
+        v-model:leftLeft="control.LEFT"
+        v-model:leftRight="control.RIGHT"
+        v-model:leftDown="control.DOWN"/>
     </div>
     <div class="grow min-w-0 overflow-hidden flex flex-col">
       <div
@@ -93,8 +98,13 @@
       <ControllerRight
         class="transition-transform duration-300 ease-in-out"
         :class="shownUI.controller.shown ? 'translate-x-0' : 'translate-x-full'"
-        v-model:rightStick="sticks.right"
-        v-model:rightButtons="buttons.right"/>
+        v-model:rightStick="control.rightStick"
+        v-model:rightTrigger="control.RT"
+        v-model:rightBumper="control.RB"
+        v-model:rightUp="control.Y"
+        v-model:rightLeft="control.X"
+        v-model:rightRight="control.B"
+        v-model:rightDown="control.A"/>
     </div>
   </main>
 </template>
@@ -110,6 +120,8 @@ import { onMounted, onUnmounted, reactive, ref, watch } from 'vue';
 import { createRos } from './api/ros';
 import Message from './components/message.vue';
 import Map from '@/components/map.vue';
+import { createControllerTopicInterval } from './utils/createControllerTopicInterval';
+import type { Control } from './model/control';
 
 const isPortrait = ref(false);
 
@@ -147,35 +159,44 @@ const shownUI = reactive({
   settings: { icon: 'bi:gear-wide-connected', shown: false, available: true },
 })
 
-const sticks = reactive({
-  right: {
+const control = reactive<Control>({
+  LT: false,
+  RT: false,
+  LB: false,
+  RB: false,
+  A: false,
+  B: false,
+  X: false,
+  Y: false,
+  UP: false,
+  DOWN: false,
+  LEFT: false,
+  RIGHT: false,
+  leftStick: {
     x: 0,
     y: 0
   },
-  left: {
+  rightStick: {
     x: 0,
     y: 0
-  }
-})
-
-const buttons = reactive({
-  left: {
-    trigger: false,
-    bumper: false,
-    up: false,
-    left: false,
-    right: false,
-    down: false
-  },
-  right: {
-    trigger: false,
-    bumper: false,
-    up: false,
-    left: false,
-    right: false,
-    down: false
   }
 })
 
 const { ros, status } = createRos()
+
+let joyInterval: number | null = null
+const joyTopicTPS = 30
+
+watch(() => shownUI.controller.shown, (shown) => {
+  console.log("hi!")
+  if( shown ){
+    joyInterval = createControllerTopicInterval(ros, joyTopicTPS, control)
+    console.log("startjoyinterval")
+  }else{
+    if(joyInterval){
+      clearInterval(joyInterval)
+      joyInterval = null
+    }
+  }
+})
 </script>
