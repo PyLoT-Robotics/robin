@@ -8,6 +8,7 @@ import cv2
 from av import VideoFrame
 import numpy as np
 import time
+import threading
 
 IMAGE_SUBSCRIBE_TOPIC_NAME = "/camera/camera/color/image_raw"
 VIDEO_PUBLISHER_SUBSCRIBE_TOPIC_NAME = "/robin/video_publisher_subscribe_topic"
@@ -55,21 +56,33 @@ pcs = set()
 width = 640
 height = 480
 frame = np.zeros((height, width, 3), np.uint8) #初期の画像
+frame_lock = threading.Lock()
+frame_sequence = 0
 
 class OpenCVCameraStreamTrack(VideoStreamTrack):
     def __init__(self):
         super().__init__()
+        self.last_sent_sequence = -1
 
     async def recv(self):
-        global frame
+        global frame_sequence
+
+        # Send a frame only when ROS has delivered a newer image.
+        while True:
+            with frame_lock:
+                has_new_frame = frame_sequence != self.last_sent_sequence
+                if has_new_frame:
+                    local_frame = frame.copy()
+                    self.last_sent_sequence = frame_sequence
+                    break
+            await asyncio.sleep(0.01)
 
         pts, time_base = await self.next_timestamp()
 
-        video_frame = VideoFrame.from_ndarray(frame, format="rgb24")
+        video_frame = VideoFrame.from_ndarray(local_frame, format="rgb24")
         video_frame.pts = pts
         video_frame.time_base = time_base
 
-        await asyncio.sleep(1 / 30)  # 30fps程度に制限
         return video_frame
 
 
@@ -106,7 +119,6 @@ from sensor_msgs.msg import Image
 from std_msgs.msg import String
 import rclpy
 from cv_bridge import CvBridge
-import threading
 
 class Client(Node):
     def __init__(self):
@@ -154,9 +166,11 @@ class Client(Node):
         )
 
     def update_latest_frame(self, msg):
-        global frame
-        self.logger.info("Received image")
-        frame = self.bridge.imgmsg_to_cv2(msg, desired_encoding="rgb8")
+        global frame, frame_sequence
+
+        with frame_lock:
+            frame = self.bridge.imgmsg_to_cv2(msg, desired_encoding="rgb8")
+            frame_sequence += 1
 
 def main(args=None):
     rclpy.init(args=args)
