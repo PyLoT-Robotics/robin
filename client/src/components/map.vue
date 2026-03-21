@@ -81,6 +81,12 @@ const globalPathTopics = [
     "/move_base/NavfnROS/plan",
     "/move_base/GlobalPlanner/plan"
 ];
+const robotBaseFrameCandidates = [
+    "base_link",
+    "base_footprint",
+    "base_chassis",
+    "base_stabilized"
+];
 
 let mapSubscriber: Topic | null = null;
 let scanSubscriber: Topic | null = null;
@@ -425,6 +431,7 @@ function updateTfTransforms(message: unknown) {
     scheduleCostmapDraw();
     scheduleScanDraw();
     scheduleGlobalPathDraw();
+    schedulePoseOverlayDraw();
 }
 
 function mapWorldToPixel(worldX: number, worldY: number) {
@@ -491,6 +498,28 @@ function viewportPointToWorld(clientX: number, clientY: number) {
     return mapPixelToWorld(pixel.x, pixel.y);
 }
 
+function mapPixelToViewportPoint(pixelX: number, pixelY: number) {
+    if (mapWidth.value <= 0 || mapHeight.value <= 0) {
+        return null;
+    }
+
+    const cx = mapWidth.value / 2;
+    const cy = mapHeight.value / 2;
+    const localX = pixelX - cx;
+    const localY = pixelY - cy;
+    const rad = (MAP_ROTATION_DEG * Math.PI) / 180;
+    const cos = Math.cos(rad);
+    const sin = Math.sin(rad);
+
+    const rotatedX = localX * cos - localY * sin;
+    const rotatedY = localX * sin + localY * cos;
+
+    return {
+        x: translateX.value + cx + rotatedX * scale.value,
+        y: translateY.value + cy + rotatedY * scale.value
+    };
+}
+
 function yawToQuaternion(yaw: number) {
     const half = yaw / 2;
     return {
@@ -510,6 +539,69 @@ function schedulePoseOverlayDraw() {
         poseOverlayAnimationFrameId = null;
         drawPoseOverlay();
     });
+}
+
+function resolveRobotPoseInMap() {
+    for (const frameId of robotBaseFrameCandidates) {
+        const pose = resolveTransform(mapFrameId.value, frameId);
+        if (pose) {
+            return pose;
+        }
+    }
+    return null;
+}
+
+function drawRobotMarker(ctx: CanvasRenderingContext2D) {
+    const robotPose = resolveRobotPoseInMap();
+    if (!robotPose) {
+        return;
+    }
+
+    const basePixel = mapWorldToPixel(robotPose.x, robotPose.y);
+    if (!basePixel) {
+        return;
+    }
+
+    const headingLengthMeters = 0.45;
+    const noseWorldX = robotPose.x + Math.cos(robotPose.yaw) * headingLengthMeters;
+    const noseWorldY = robotPose.y + Math.sin(robotPose.yaw) * headingLengthMeters;
+    const nosePixel = mapWorldToPixel(noseWorldX, noseWorldY);
+
+    const baseViewport = mapPixelToViewportPoint(basePixel.x, basePixel.y);
+    if (!baseViewport) {
+        return;
+    }
+
+    let headingAngle = 0;
+    if (nosePixel) {
+        const noseViewport = mapPixelToViewportPoint(nosePixel.x, nosePixel.y);
+        if (noseViewport) {
+            headingAngle = Math.atan2(noseViewport.y - baseViewport.y, noseViewport.x - baseViewport.x);
+        }
+    }
+
+    ctx.save();
+    ctx.translate(baseViewport.x, baseViewport.y);
+    ctx.rotate(headingAngle);
+
+    ctx.fillStyle = "rgba(14, 165, 233, 0.95)";
+    ctx.strokeStyle = "rgba(224, 242, 254, 0.95)";
+    ctx.lineWidth = 2;
+
+    ctx.beginPath();
+    ctx.arc(0, 0, 7, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.moveTo(14, 0);
+    ctx.lineTo(-2, 7);
+    ctx.lineTo(-2, -7);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.restore();
 }
 
 function drawPoseOverlay() {
@@ -536,6 +628,8 @@ function drawPoseOverlay() {
     }
 
     ctx.clearRect(0, 0, width, height);
+
+    drawRobotMarker(ctx);
 
     if (!isPoseInteractionMode.value || !isPoseDragging.value || !poseDragStartScreen || !poseDragCurrentScreen) {
         return;
