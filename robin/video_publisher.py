@@ -10,6 +10,7 @@ import numpy as np
 import time
 
 IMAGE_SUBSCRIBE_TOPIC_NAME = "/camera/camera/color/image_raw"
+VIDEO_PUBLISHER_SUBSCRIBE_TOPIC_NAME = "/robin/video_publisher_subscribe_topic"
 
 def runServer(on_shutdown, offer):
     async def start_server():
@@ -102,6 +103,7 @@ async def on_shutdown(app):
 
 from rclpy.node import Node
 from sensor_msgs.msg import Image
+from std_msgs.msg import String
 import rclpy
 from cv_bridge import CvBridge
 import threading
@@ -110,15 +112,46 @@ class Client(Node):
     def __init__(self):
         super().__init__("client")
 
+        self.current_image_topic = IMAGE_SUBSCRIBE_TOPIC_NAME
         self.image_subscriber = self.create_subscription(
-            Image, IMAGE_SUBSCRIBE_TOPIC_NAME, self.update_latest_frame, 10
+            Image, self.current_image_topic, self.update_latest_frame, 10
+        )
+        self.topic_subscriber = self.create_subscription(
+            String,
+            VIDEO_PUBLISHER_SUBSCRIBE_TOPIC_NAME,
+            self.update_image_subscribe_topic,
+            10,
         )
 
         self.bridge = CvBridge()
         self.logger = logging.getLogger("Client")
 
         self.logger.info("Video Publisher Node Initialized")
+        self.logger.info(f"Initial image subscribe topic: {self.current_image_topic}")
         threading.Thread(target=runServer, args=(on_shutdown, offer), daemon=True).start()
+
+    def update_image_subscribe_topic(self, msg):
+        global IMAGE_SUBSCRIBE_TOPIC_NAME
+
+        new_topic = msg.data.strip()
+        if not new_topic:
+            self.logger.warning("Received empty topic name. Ignore update.")
+            return
+
+        if new_topic == self.current_image_topic:
+            return
+
+        old_topic = self.current_image_topic
+        self.destroy_subscription(self.image_subscriber)
+        self.image_subscriber = self.create_subscription(
+            Image, new_topic, self.update_latest_frame, 10
+        )
+
+        self.current_image_topic = new_topic
+        IMAGE_SUBSCRIBE_TOPIC_NAME = new_topic
+        self.logger.info(
+            f"Switched image subscribe topic: {old_topic} -> {self.current_image_topic}"
+        )
 
     def update_latest_frame(self, msg):
         global frame

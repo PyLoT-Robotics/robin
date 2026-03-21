@@ -31,19 +31,45 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed, watch } from "vue";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
-import { type Ros } from "@/api/ros"
+import { createTopic, type Ros, type Topic } from "@/api/ros"
 import { useTopicsList } from "@/hooks/useTopicsList";
 
 const cameraTopicStorage = useLocalStorage("CameraTopic")
 const logTopicStorage = useLocalStorage("LogTopic")
+const videoPublisherSubscribeTopicName = "/robin/video_publisher_subscribe_topic"
 
 const { ros } = defineProps<{
   ros: Ros
 }>()
 
 const { topicsList } = useTopicsList(ros)
+let videoPublisherSubscribeTopic: Topic | null = null
+
+function ensureVideoPublisherSubscribeTopic() {
+  if (videoPublisherSubscribeTopic) {
+    return videoPublisherSubscribeTopic
+  }
+
+  videoPublisherSubscribeTopic = createTopic(
+    ros,
+    videoPublisherSubscribeTopicName,
+    "std_msgs/String",
+  )
+  return videoPublisherSubscribeTopic
+}
+
+function publishCameraTopic(value: string) {
+  const topic = value.trim()
+  if (!topic) {
+    return
+  }
+
+  ensureVideoPublisherSubscribeTopic().publish({
+    data: topic,
+  })
+}
 
 const cameraTopic = computed({
   get: () => cameraTopicStorage.value ?? "/camera/image_raw",
@@ -58,4 +84,12 @@ const logTopic = computed({
     logTopicStorage.value = value
   }
 })
+
+watch(
+  cameraTopic,
+  (value) => {
+    publishCameraTopic(value)
+  },
+  { immediate: true },
+)
 </script>

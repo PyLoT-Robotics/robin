@@ -94,10 +94,10 @@ export default defineConfig({
   server: {
     https: httpsOptions,
     proxy: {
-      "/ws": {
+      "/rosbridge": {
         target: "ws://localhost:9090",
         ws: true,
-        rewrite: (path) => path.replace(/^\/ws/, ""),
+        rewrite: (path) => path.replace(/^\/rosbridge/, ""),
       },
       "/video_publisher": {
         target: "http://localhost:8080",

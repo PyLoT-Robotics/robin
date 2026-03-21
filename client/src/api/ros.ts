@@ -3,8 +3,7 @@ import type { Action, Ros, Topic } from "roslib";
 import { ref } from "vue";
 
 export function createRos() {
-  const wsProtocol = window.location.protocol === "https:" ? "wss" : "ws";
-  const RosWebsocketUrl = `${wsProtocol}://${window.location.host}/ws`;
+  const RosWebsocketUrl = `wss://${window.location.host}/rosbridge`;
   const ros = new RosLib.Ros();
 
   const status = ref<"connected" | "closed" | "error">("closed");
