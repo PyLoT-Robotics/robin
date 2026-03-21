@@ -9,7 +9,7 @@ from av import VideoFrame
 import numpy as np
 import time
 
-IMAGE_SUBSCRIBE_TOPIC_NAME = "/d455/camera/color/image_raw"
+IMAGE_SUBSCRIBE_TOPIC_NAME = "/camera/camera/color/image_raw"
 
 def runServer(on_shutdown, offer):
     async def start_server():

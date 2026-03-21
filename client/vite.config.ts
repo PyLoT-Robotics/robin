@@ -99,6 +99,10 @@ export default defineConfig({
         ws: true,
         rewrite: (path) => path.replace(/^\/ws/, ""),
       },
+      "/video_publisher": {
+        target: "http://localhost:8080",
+        rewrite: (path) => path.replace(/^\/video_publisher/, ""),
+      }
     }
   }
 })

@@ -1,5 +1,5 @@
 <template>
-  <div class="overflow-hidden flex items-center justify-center w-full h-full bg-orange-600">
+  <div class="overflow-hidden flex items-center justify-center w-full h-full">
     <video
       ref="remoteVideo"
       autoplay
@@ -41,7 +41,7 @@ onMounted(() => {
   
     if( !pc.localDescription ) throw new Error("Local description is null");
   
-    const response = await fetch(`http://${window.location.hostname}:8080/offer`, {
+    const response = await fetch(`https://${window.location.hostname}:${window.location.port}/video_publisher/offer`, {
       method: "POST",
       body: JSON.stringify({
         sdp: pc.localDescription.sdp,
