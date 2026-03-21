@@ -1,17 +1,17 @@
 <template>
-  <div class="relative overflow-hidden flex items-center justify-center w-full h-full">
+  <div class="flex flex-col overflow-hidden w-full h-full">
     <video
       ref="remoteVideo"
       autoplay
       playsinline
       muted
       preload="none"
-      class="w-full h-full object-contain" />
+      class="grow object-contain" />
     <div
-      class="absolute bottom-3 right-3 rounded-md bg-black/65 px-3 py-1 text-sm font-mono"
-      :class="isFrameStale ? 'text-red-300' : 'text-zinc-100'"
+      class="rounded-md px-3 py-1 text-sm font-mono text-center border-b border-border"
+      :class="isFrameStale ? 'text-red-400' : 'text-zinc-100'"
       v-if="lastFrameUpdatedAtText">
-      Last frame: {{ lastFrameUpdatedAtText }} ({{ lastFrameAgeText }})
+      Last frame updated: {{ lastFrameAgeText }}
     </div>
   </div>
 </template>
@@ -23,8 +23,12 @@ const remoteVideo = ref<HTMLVideoElement | null>(null)
 const incomingStream = ref<MediaStream | null>(null)
 const lastFrameUpdatedAt = ref<Date | null>(null)
 const nowMs = ref(Date.now())
+const peerConnection = ref<RTCPeerConnection | null>(null)
 
 let nowTimer: ReturnType<typeof setInterval> | null = null
+let inboundStatsTimer: ReturnType<typeof setInterval> | null = null
+let lastDecodedFrames = -1
+let statsPolling = false
 
 function formatDuration(ms: number) {
   return `${(ms / 1000).toFixed(1)}s ago`
@@ -61,39 +65,59 @@ const frameAgeMs = computed(() => {
 
 const isFrameStale = computed(() => frameAgeMs.value >= 2000)
 
-watchEffect((onCleanup) => {
+watchEffect(() => {
   if (!remoteVideo.value || !incomingStream.value) {
     return
   }
 
   remoteVideo.value.srcObject = incomingStream.value
+})
 
-  const videoElement = remoteVideo.value
-  if (!("requestVideoFrameCallback" in videoElement)) {
+async function pollInboundFrameStats() {
+  const pc = peerConnection.value
+  if (!pc || statsPolling) {
     return
   }
 
-  let isActive = true
-  const updateTimestamp = () => {
-    if (!isActive) {
-      return
-    }
-    lastFrameUpdatedAt.value = new Date()
-    videoElement.requestVideoFrameCallback(updateTimestamp)
-  }
+  statsPolling = true
+  try {
+    const receivers = pc.getReceivers().filter((receiver) => receiver.track?.kind === "video")
+    let maxFramesDecoded = lastDecodedFrames
 
-  videoElement.requestVideoFrameCallback(updateTimestamp)
-  onCleanup(() => {
-    isActive = false
-  })
-});
+    for (const receiver of receivers) {
+      const stats = await receiver.getStats()
+      stats.forEach((report) => {
+        if (report.type !== "inbound-rtp" || report.kind !== "video") {
+          return
+        }
+
+        const framesDecoded = Number(report.framesDecoded ?? 0)
+        if (framesDecoded > maxFramesDecoded) {
+          maxFramesDecoded = framesDecoded
+        }
+      })
+    }
+
+    if (maxFramesDecoded > lastDecodedFrames) {
+      lastDecodedFrames = maxFramesDecoded
+      lastFrameUpdatedAt.value = new Date()
+    }
+  } finally {
+    statsPolling = false
+  }
+}
 
 onMounted(() => {
   const pc = new RTCPeerConnection();
+  peerConnection.value = pc
 
   nowTimer = setInterval(() => {
     nowMs.value = Date.now()
   }, 100)
+
+  inboundStatsTimer = setInterval(() => {
+    void pollInboundFrameStats()
+  }, 200)
 
   pc.addTransceiver("video", { direction: "recvonly" });
 
@@ -136,6 +160,16 @@ onUnmounted(() => {
   if (nowTimer) {
     clearInterval(nowTimer)
     nowTimer = null
+  }
+
+  if (inboundStatsTimer) {
+    clearInterval(inboundStatsTimer)
+    inboundStatsTimer = null
+  }
+
+  if (peerConnection.value) {
+    peerConnection.value.close()
+    peerConnection.value = null
   }
 })
 </script>

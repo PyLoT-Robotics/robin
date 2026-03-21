@@ -70,7 +70,7 @@
           <p>No UI is selected</p>
         </div>
       </div>
-      <div class="border-t border-border basis-16 flex justify-center">
+      <div class="border-t border-border basis-12 flex justify-center overflow-x-auto">
         <button
           v-for="(button, key) in shownUI"
           :key
@@ -83,7 +83,7 @@
           }">
           <Icon
             :icon="button.icon"
-            class="text-3xl"/>
+            class="text-2xl"/>
         </button>
       </div>
     </div>
