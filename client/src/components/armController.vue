@@ -17,13 +17,17 @@
     <VelocityChart
       :velocity="velocity"
     />
+    <PositionVectorView
+      :position="position"
+    />
   </div>
 </template>
 <script setup lang="ts">
 import AccelChart from '@/components/armController/accelChart.vue'
+import PositionVectorView from '@/components/armController/positionVectorView.vue'
 import VelocityChart from '@/components/armController/velocityChart.vue'
 import { useAccelerometer } from '@/hooks/useAccelerometer'
-import { reactive, watch } from 'vue'
+import { onBeforeUnmount, onMounted, reactive, watch } from 'vue'
 
 const { acceleration, statusText, permissionState, requestPermissionAndStart } = useAccelerometer()
 
@@ -49,26 +53,31 @@ watch(() => acceleration, (newVal) => {
 }, { deep: true })
 
 const velocity = reactive<Vector>({ x: 0, y: 0, z: 0 })
+const position = reactive<Vector>({ x: 0, y: 0, z: 0 })
 const tps = 20
-const accelBias =reactive<Vector>({ x: 0, y: 0, z: 0 })
+const accelBias = reactive<Vector>({ x: 0, y: 0, z: 0 })
 const zeroAccelTicks = reactive<Vector>({ x: 0, y: 0, z: 0 })
 const zeroVelocityAfterTicks = 5
 
-let velocityInterval: number | null = setInterval(() => {
-    const alpha = 0.95;
-    const beta = 0.10;
-    
-    accelBias.x = (acceleration.x - smoothedAcceleration.x) * beta + accelBias.x * (1-beta)
-    accelBias.y = (acceleration.y - smoothedAcceleration.y) * beta + accelBias.y * (1-beta)
-    accelBias.z = (acceleration.z - smoothedAcceleration.z) * beta + accelBias.z * (1-beta)
-    
-    velocity.x += (smoothedAcceleration.x * alpha + (acceleration.x - accelBias.x) * (1 - alpha)) / tps
-    velocity.y += (smoothedAcceleration.y * alpha + (acceleration.y - accelBias.y) * (1 - alpha)) / tps
-    velocity.z += (smoothedAcceleration.z * alpha + (acceleration.z - accelBias.z) * (1 - alpha)) / tps
+let velocityInterval: number | null = null
 
-    velocity.x *= 0.99;
-    velocity.y *= 0.99;
-    velocity.z *= 0.99;
+onMounted(() => {
+  velocityInterval = window.setInterval(() => {
+    const alpha = 0.95
+    const beta = 0.10
+    const dt = 1 / tps
+
+    accelBias.x = (acceleration.x - smoothedAcceleration.x) * beta + accelBias.x * (1 - beta)
+    accelBias.y = (acceleration.y - smoothedAcceleration.y) * beta + accelBias.y * (1 - beta)
+    accelBias.z = (acceleration.z - smoothedAcceleration.z) * beta + accelBias.z * (1 - beta)
+
+    velocity.x += (smoothedAcceleration.x * alpha + (acceleration.x - accelBias.x) * (1 - alpha)) * dt
+    velocity.y += (smoothedAcceleration.y * alpha + (acceleration.y - accelBias.y) * (1 - alpha)) * dt
+    velocity.z += (smoothedAcceleration.z * alpha + (acceleration.z - accelBias.z) * (1 - alpha)) * dt
+
+    velocity.x *= 0.99
+    velocity.y *= 0.99
+    velocity.z *= 0.99
 
     zeroAccelTicks.x = smoothedAcceleration.x === 0 ? zeroAccelTicks.x + 1 : 0
     zeroAccelTicks.y = smoothedAcceleration.y === 0 ? zeroAccelTicks.y + 1 : 0
@@ -77,5 +86,17 @@ let velocityInterval: number | null = setInterval(() => {
     if (zeroAccelTicks.x >= zeroVelocityAfterTicks) velocity.x = 0
     if (zeroAccelTicks.y >= zeroVelocityAfterTicks) velocity.y = 0
     if (zeroAccelTicks.z >= zeroVelocityAfterTicks) velocity.z = 0
-}, 1000 / tps)
+
+    position.x += velocity.x * dt
+    position.y += velocity.y * dt
+    position.z += velocity.z * dt
+  }, 1000 / tps)
+})
+
+onBeforeUnmount(() => {
+  if (velocityInterval !== null) {
+    window.clearInterval(velocityInterval)
+    velocityInterval = null
+  }
+})
 </script>

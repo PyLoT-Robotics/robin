@@ -24,6 +24,7 @@
     "qrcode": "^1.5.4",
     "roslib": "^2.1.0",
     "tailwindcss": "^4.2.1",
+    "three": "^0.180.0",
     "vite-plugin-pwa": "^1.2.0",
     "vue": "^3.5.29"
   },
