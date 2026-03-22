@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "bun showQRcode.ts && vp dev --host",
-    "generate-pwa-assets": "pwa-assets-generator --preset minimal-2023 public/logo.png",
+    "generate-pwa-assets": "pwa-assets-generator --config pwa-assets.config.ts",
     "build": "run-p type-check \"build-only {@}\" --",
     "preview": "vp preview",
     "test:unit": "vp test",
