@@ -1,7 +1,16 @@
 <template>
     <div class="p-4 pt-0">
       <div class="rounded border border-zinc-700 bg-zinc-950 p-3">
-        <h3 class="mb-2 text-sm font-semibold text-zinc-300">Realtime Acceleration Graph</h3>
+        <div class="mb-2 flex items-center justify-between gap-3">
+          <h3 class="text-sm font-semibold text-zinc-300">Realtime Acceleration Graph</h3>
+          <button
+            type="button"
+            class="rounded border border-zinc-600 px-2 py-1 text-xs font-medium text-zinc-200 transition-colors hover:border-zinc-400 hover:bg-zinc-800"
+            @click="showRawData = !showRawData"
+          >
+            {{ showRawData ? '生データ: 表示中' : '生データ: 非表示' }}
+          </button>
+        </div>
         <div class="h-72 w-full">
           <canvas ref="accelChartCanvas" class="h-full w-full" />
         </div>
@@ -27,10 +36,13 @@ const {
 }>()
 
 const accelChartCanvas = ref<HTMLCanvasElement | null>(null)
+const showRawData = ref(true)
 let accelChart: Chart<'line', number[], string> | null = null
 let sampleCount = 0
+let sampleIntervalId: number | null = null
 
 const MAX_POINTS = 100
+const SAMPLE_HZ = 20
 
 function appendWithLimit(target: number[], value: number): void {
   target.push(value)
@@ -55,6 +67,7 @@ function createDatasets(): ChartDataset<'line', number[]>[] {
       borderColor: '#60a5fa',
       backgroundColor: '#60a5fa',
       pointRadius: 0,
+      borderDash: [2, 4],
       borderWidth: 1.5,
       tension: 0.2,
     },
@@ -64,6 +77,7 @@ function createDatasets(): ChartDataset<'line', number[]>[] {
       borderColor: '#34d399',
       backgroundColor: '#34d399',
       pointRadius: 0,
+      borderDash: [2, 4],
       borderWidth: 1.5,
       tension: 0.2,
     },
@@ -73,6 +87,7 @@ function createDatasets(): ChartDataset<'line', number[]>[] {
       borderColor: '#f59e0b',
       backgroundColor: '#f59e0b',
       pointRadius: 0,
+      borderDash: [2, 4],
       borderWidth: 1.5,
       tension: 0.2,
     },
@@ -82,7 +97,6 @@ function createDatasets(): ChartDataset<'line', number[]>[] {
       borderColor: '#3b82f6',
       backgroundColor: '#3b82f6',
       pointRadius: 0,
-      borderDash: [6, 4],
       borderWidth: 1.5,
       tension: 0.2,
     },
@@ -92,7 +106,6 @@ function createDatasets(): ChartDataset<'line', number[]>[] {
       borderColor: '#10b981',
       backgroundColor: '#10b981',
       pointRadius: 0,
-      borderDash: [6, 4],
       borderWidth: 1.5,
       tension: 0.2,
     },
@@ -102,11 +115,19 @@ function createDatasets(): ChartDataset<'line', number[]>[] {
       borderColor: '#d97706',
       backgroundColor: '#d97706',
       pointRadius: 0,
-      borderDash: [6, 4],
       borderWidth: 1.5,
       tension: 0.2,
     },
   ]
+}
+
+function applyRawVisibility(): void {
+  if (!accelChart) return
+  for (let i = 0; i < 3; i += 1) {
+    const dataset = accelChart.data.datasets[i]
+    if (!dataset) continue
+    dataset.hidden = !showRawData.value
+  }
 }
 
 function initChart(): void {
@@ -161,17 +182,19 @@ function initChart(): void {
       },
     },
   })
+
+  applyRawVisibility()
 }
 
-watch(() => acceleration, (newVal) => {
+function appendCurrentAccelerationSample(): void {
   if(!accelChart) return
   sampleCount += 1
   appendLabel(String(sampleCount))
 
   const datasetValues = [
-    newVal.x,
-    newVal.y,
-    newVal.z,
+    acceleration.x,
+    acceleration.y,
+    acceleration.z,
     smoothedAcceleration.x,
     smoothedAcceleration.y,
     smoothedAcceleration.z,
@@ -184,13 +207,24 @@ watch(() => acceleration, (newVal) => {
   })
 
   accelChart.update('none')
-}, { deep: true })
+}
+
+watch(showRawData, () => {
+  if (!accelChart) return
+  applyRawVisibility()
+  accelChart.update('none')
+})
 
 onMounted(() => {
   initChart()
+  sampleIntervalId = window.setInterval(appendCurrentAccelerationSample, 1000 / SAMPLE_HZ)
 })
 
 onBeforeUnmount(() => {
+  if (sampleIntervalId !== null) {
+    window.clearInterval(sampleIntervalId)
+    sampleIntervalId = null
+  }
   accelChart?.destroy()
   accelChart = null
 })

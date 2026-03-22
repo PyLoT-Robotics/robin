@@ -96,7 +96,3 @@ export function useAccelerometer(){
         requestPermissionAndStart
     }
 }
-
-export function formatAxis(value: number): string {
-  return Number.isFinite(value) ? value.toFixed(3) : '0.000'
-}
