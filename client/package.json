@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "bun showQRcode.ts && vp dev --host",
+    "generate-pwa-assets": "pwa-assets-generator --preset minimal-2023 public/logo.png",
     "build": "run-p type-check \"build-only {@}\" --",
     "preview": "vp preview",
     "test:unit": "vp test",
@@ -32,6 +33,7 @@
     "@tsconfig/node24": "^24.0.4",
     "@types/jsdom": "^28.0.0",
     "@types/node": "^24.11.0",
+    "@vite-pwa/assets-generator": "^1.0.2",
     "@vitejs/plugin-vue": "^6.0.4",
     "@vitest/eslint-plugin": "^1.6.9",
     "@vue/eslint-config-typescript": "^14.7.0",

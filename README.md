@@ -1,9 +1,6 @@
-<p align="center">
-  <img
-    height="300"
-    alt="Robin Logo"
-    src="client/public/icon.svg"/>
-</p>
+<img
+  alt="Robin Logo"
+  src="client/public/OGP.png"/>
 
 # Robin
 
