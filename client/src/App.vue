@@ -124,7 +124,7 @@
   </main>
 </template>
 <script setup lang="ts">
-import ArmController from '@/components/controller/armController.vue'
+import ArmController from '@/components/armController.vue'
 import ControllerLeft from '@/components/controller/controller_left.vue'
 import ControllerRight from '@/components/controller/controller_right.vue'
 import LiveVideo from '@/components/live_video.vue'
