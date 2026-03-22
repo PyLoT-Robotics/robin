@@ -23,10 +23,39 @@
         <p class="font-mono text-sm">Y: {{ formatAxis(acceleration.y) }}</p>
         <p class="font-mono text-sm">Z: {{ formatAxis(acceleration.z) }}</p>
       </div>
+
+      <div class="rounded border border-zinc-700 bg-zinc-950 p-3">
+        <h3 class="mb-2 text-sm font-semibold text-zinc-300">Smoothed Acceleration</h3>
+        <p class="font-mono text-sm">X: {{ formatAxis(smoothedAcceleration.x) }}</p>
+        <p class="font-mono text-sm">Y: {{ formatAxis(smoothedAcceleration.y) }}</p>
+        <p class="font-mono text-sm">Z: {{ formatAxis(smoothedAcceleration.z) }}</p>
+      </div>
     </div>
+    <AccelChart
+      :acceleration="acceleration"
+      :smoothedAcceleration="smoothedAcceleration"
+    />
   </div>
 </template>
 <script setup lang="ts">
-import { formatAxis,useAccelerometer } from '@/hooks/useAccelerometer';
-const { acceleration, statusText, permissionState, requestPermissionAndStart } = useAccelerometer();
+import AccelChart from '@/components/armController/accelChart.vue'
+import { formatAxis, useAccelerometer } from '@/hooks/useAccelerometer'
+import { reactive, watch } from 'vue'
+
+const { acceleration, statusText, permissionState, requestPermissionAndStart } = useAccelerometer()
+
+type Vector = {
+  x: number
+  y: number
+  z: number
+}
+
+const smoothedAcceleration = reactive<Vector>({ x: 0, y: 0, z: 0 })
+
+watch(acceleration, (newVal) => {
+  const alpha = 0.15
+  smoothedAcceleration.x = smoothedAcceleration.x + alpha * (newVal.x - smoothedAcceleration.x)
+  smoothedAcceleration.y = smoothedAcceleration.y + alpha * (newVal.y - smoothedAcceleration.y)
+  smoothedAcceleration.z = smoothedAcceleration.z + alpha * (newVal.z - smoothedAcceleration.z)
+})
 </script>
