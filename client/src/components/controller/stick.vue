@@ -116,6 +116,7 @@ function getTouchDistance(touch: Touch) {
 function touchHandler(handler: (clientX: number, clientY: number) => void) {
   return (e: TouchEvent) => {
     const touch = Array.from(e.touches).sort((a, b) => getTouchDistance(a) - getTouchDistance(b))[0]
+    if( !touch ) throw new Error('no touch found')
     handler(touch.clientX, touch.clientY)
   }
 }

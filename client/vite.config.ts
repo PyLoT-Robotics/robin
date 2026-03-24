@@ -45,6 +45,9 @@ export default defineConfig({
       typeCheck: true,
     },
   },
+  preview: {
+    strictPort: true
+  },
   plugins: [
     vue(),
     tailwindcss(),

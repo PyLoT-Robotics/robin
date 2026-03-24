@@ -7,7 +7,7 @@
     "dev": "bun showQRcode.ts && vp dev --host",
     "generate-pwa-assets": "pwa-assets-generator --config pwa-assets.config.ts",
     "build": "run-p type-check \"build-only {@}\" --",
-    "preview": "vp preview",
+    "preview": "bun showQRcode.ts 4173 && vp preview --host --logLevel silent",
     "test:unit": "vp test",
     "build-only": "vp build",
     "type-check": "vue-tsc --build",

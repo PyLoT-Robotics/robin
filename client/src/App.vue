@@ -203,7 +203,7 @@ const control = reactive<Control>({
 
 const { ros, status } = createRos()
 
-let joyInterval: number | null = null
+let joyInterval: ReturnType<typeof setTimeout> | null = null
 const joyTopicTPS = 30
 
 watch(

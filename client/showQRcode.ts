@@ -1,29 +1,26 @@
 import { networkInterfaces } from 'os'
 import QRCode from 'qrcode'
 
-const nets = networkInterfaces()
-const results = Object.create(null)
+const args = process.argv.slice(2)
+const port = args[0] ?? '5173'
 
-for (const name of Object.keys(nets)) {
-  const net = nets[name]
-  if (!net) continue
-  for (const info of net) {
-    if (info.family === 'IPv4' && !info.internal) {
-      if (!results[name]) {
-        results[name] = []
+const localIP: string = (() => {
+  const nets = networkInterfaces()
+  for (const name of Object.keys(nets)) {
+    for (const net of nets[name]!) {
+      if (net.family === 'IPv4' && !net.internal) {
+        return net.address
       }
-      results[name].push(info.address)
     }
   }
-}
+  throw new Error('No local IP address found')
+})()
 
-const localIP = results[Object.keys(results)[0]][0]
-
-const url = `https://${localIP}:5173/?websocket_url=${encodeURIComponent(`ws://${localIP}:9090`)}`
-console.log(url)
+const url = `https://${localIP}:${port}/`
 QRCode.toString(url, (error, qrcode) => {
   if (error) {
     throw error
   }
   console.log(qrcode)
+  console.log(`URL: ${url}`)
 })
