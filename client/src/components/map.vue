@@ -94,7 +94,6 @@
   </div>
 </template>
 <script setup lang="ts">
-import { type Ros } from '@/api/ros'
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { Icon } from '@iconify/vue'
 import BaseMapLayer from '@/components/map/layers/BaseMapLayer.vue'
@@ -109,8 +108,7 @@ import {
 } from '@/utils/map/coordinates'
 import { clamp } from '@/utils/map/math'
 import type { ScreenPoint } from '@/utils/map/types'
-
-const { ros } = defineProps<{ ros: Ros }>()
+import { ros } from '@/plugins/ros'
 
 type PoseInteractionMode = 'none' | 'initial_pose' | 'nav2_goal'
 

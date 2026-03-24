@@ -8,12 +8,10 @@
   </div>
 </template>
 <script setup lang="ts">
-import { createTopic, type Ros } from '@/api/ros'
+import { createTopic, type Topic } from '@/api/ros'
 import { useLocalStorage } from '@/hooks/useLocalStorage'
-import type { Topic } from 'roslib'
+import { ros } from '@/plugins/ros'
 import { onBeforeUnmount, ref, watch } from 'vue'
-
-const { ros } = defineProps<{ ros: Ros }>()
 
 const latestLine = ref('Waiting for messages...')
 const activeTopic = useLocalStorage('LogTopic')

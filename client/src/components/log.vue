@@ -32,12 +32,10 @@
   </div>
 </template>
 <script setup lang="ts">
-import { createService, createTopic, type Ros } from '@/api/ros'
+import { createService, createTopic, type Topic } from '@/api/ros'
 import { useLocalStorage } from '@/hooks/useLocalStorage'
-import type { Topic } from 'roslib'
+import { ros } from '@/plugins/ros'
 import { nextTick, onBeforeUnmount, ref, watch } from 'vue'
-
-const { ros } = defineProps<{ ros: Ros }>()
 
 const MAX_LINES = 50
 

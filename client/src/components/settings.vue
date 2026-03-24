@@ -29,16 +29,13 @@
 <script setup lang="ts">
 import { computed, watch } from 'vue'
 import { useLocalStorage } from '@/hooks/useLocalStorage'
-import { createTopic, type Ros, type Topic } from '@/api/ros'
+import { createTopic, type Topic } from '@/api/ros'
 import { useTopicsList } from '@/hooks/useTopicsList'
+import { ros } from '@/plugins/ros'
 
 const cameraTopicStorage = useLocalStorage('CameraTopic')
 const logTopicStorage = useLocalStorage('LogTopic')
 const videoPublisherSubscribeTopicName = '/robin/video_publisher_subscribe_topic'
-
-const { ros } = defineProps<{
-  ros: Ros
-}>()
 
 const { topicsList } = useTopicsList(ros)
 let videoPublisherSubscribeTopic: Topic | null = null

@@ -53,16 +53,13 @@
   </div>
 </template>
 <script setup lang="ts">
-import { createTopic, type Ros } from '@/api/ros'
+import { createTopic } from '@/api/ros'
 import AccelChart from '@/components/armController/accelChart.vue'
 import PositionVectorView from '@/components/armController/positionVectorView.vue'
 import VelocityChart from '@/components/armController/velocityChart.vue'
 import { useAccelerometer } from '@/hooks/useAccelerometer'
 import { onBeforeUnmount, onMounted, reactive, ref } from 'vue'
-
-const { ros } = defineProps<{
-  ros: Ros
-}>()
+import { ros } from "@/plugins/ros"
 
 const isPublishingTopic = ref(false)
 const armControllerPositionTopicName = '/robin/arm_controller'

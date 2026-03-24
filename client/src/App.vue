@@ -31,7 +31,7 @@
           class="border-b border-border h-12 transition-transform duration-300 ease-in-out"
           :class="shownUI.chat.shown ? 'translate-y-0' : '-translate-y-full'"
         >
-          <Message :ros />
+          <Message/>
         </div>
       </div>
       <div
@@ -52,28 +52,28 @@
           class="grow overflow-hidden text-zinc-200"
           :class="isPortrait ? 'h-0' : 'w-0'"
         >
-          <Log :ros />
+          <Log />
         </div>
         <div
           v-if="shownUI.armController.shown"
           class="grow overflow-hidden"
           :class="isPortrait ? 'h-0' : 'w-0'"
         >
-          <ArmController />
+          <ArmController/>
         </div>
         <div
           v-if="shownUI.map.shown"
           class="grow overflow-hidden"
           :class="isPortrait ? 'h-0' : 'w-0'"
         >
-          <Map :ros />
+          <Map />
         </div>
         <div
           v-if="shownUI.settings.shown"
           class="grow overflow-hidden"
           :class="isPortrait ? 'h-0' : 'w-0'"
         >
-          <Settings :ros />
+          <Settings/>
         </div>
         <div
           v-if="
@@ -132,7 +132,7 @@ import Settings from '@/components/settings.vue'
 import Log from '@/components/log.vue'
 import { Icon } from '@iconify/vue'
 import { onMounted, onUnmounted, reactive, ref, watch } from 'vue'
-import { createRos } from './api/ros'
+import { ros, status } from '@/plugins/ros'
 import Message from './components/message.vue'
 import Map from '@/components/map.vue'
 import { createControllerTopicInterval } from './utils/createControllerTopicInterval'
@@ -201,7 +201,6 @@ const control = reactive<Control>({
   },
 })
 
-const { ros, status } = createRos()
 
 let joyInterval: ReturnType<typeof setTimeout> | null = null
 const joyTopicTPS = 30
