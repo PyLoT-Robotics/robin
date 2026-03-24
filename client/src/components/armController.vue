@@ -1,36 +1,29 @@
 <template>
-  <div class="w-full h-full flex flex-col bg-zinc-900 text-zinc-100">
-    <div class="flex flex-col grow overflow-y-auto">
-      <div class="px-4 py-3 text-sm">
-        <p class="text-zinc-300">Status: {{ statusText }}</p>
-        <button
-          v-if="permissionState === 'required'"
-          class="mt-2 rounded border border-zinc-600 px-3 py-1 text-xs text-zinc-200 hover:bg-zinc-800"
-          @click="requestPermissionAndStart"
-        >
-          Enable Motion Sensor
-        </button>
+  <div class="w-full h-full flex flex-col text-zinc-100">
+    <div class="flex flex-col">
+      <div class="text-zinc-300 flex flex-row gap-1 px-4 py-2 border-b border-border">
+        <p>Status:</p>
+        <p>{{ statusText }}</p>
       </div>
-      <details class="mx-4 mb-3 rounded border border-zinc-700 bg-zinc-950">
-        <summary class="cursor-pointer select-none px-3 py-2 text-sm text-zinc-300">Acceleration Graph</summary>
-        <AccelChart
-          :acceleration="acceleration"
-        />
-      </details>
-      <details class="mx-4 mb-3 rounded border border-zinc-700 bg-zinc-950">
-        <summary class="cursor-pointer select-none px-3 py-2 text-sm text-zinc-300">Velocity Graph</summary>
-        <VelocityChart
-          :velocity="velocity"
-        />
-      </details>
+      <button
+        v-if="permissionState === 'required'"
+        class="border-b border-border px-4 py-2 text-zinc-200 bg-zinc-900"
+        @click="requestPermissionAndStart">
+        Enable Motion Sensor
+      </button>
+    </div>
+    <div class="flex flex-col grow overflow-y-auto">
       <PositionVectorView
         :position="position"
-        :orientation="orientation"
-      />
+        :orientation="orientation"/>
+      <AccelChart
+        :acceleration="acceleration"/>
+      <VelocityChart
+        :velocity="velocity"/>
     </div>
-    <div class="basis-80 flex flex-row gap-2 p-2">
+    <div class="basis-52 min-h-52 flex flex-row">
       <button
-        class="grid place-content-center grow text-4xl select-none rounded"
+        class="grid place-content-center grow text-4xl select-none"
         @pointerdown="startMove"
         @pointerup="stopMove"
         @pointercancel="stopMove"
@@ -42,7 +35,7 @@
         Move
       </button>
       <button
-        class="grid place-content-center px-6 text-lg select-none rounded bg-zinc-700 hover:bg-zinc-600"
+        class="grid place-content-center px-6 text-lg select-none bg-zinc-700 hover:bg-zinc-600"
         @click="resetPosition"
       >
         Reset

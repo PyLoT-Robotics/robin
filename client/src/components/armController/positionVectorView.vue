@@ -1,24 +1,21 @@
 <template>
-  <div class="p-4 pt-0">
-    <div class="rounded border border-zinc-700 bg-zinc-950 p-3">
-      <h3 class="mb-2 text-sm font-semibold text-zinc-300">Position (Integrated, Device Axes)</h3>
-      <p class="mb-3 text-xs text-zinc-400">
-        X (負=右): <span class="text-red-400">{{ position.x.toFixed(3) }}</span>
-        Y (負=下): <span class="ml-3 text-green-400">{{ (-position.z).toFixed(3) }}</span>
-        Z (負=奥): <span class="ml-3 text-blue-400">{{ (-position.y).toFixed(3) }}</span>
+  <div class="flex flex-col">
+    <div ref="container" class="h-72 w-full border-border border-b"/>
+    <div class="flex flex-col gap-1 py-2 px-4 border-b border-border">
+      <p class="text-xs text-zinc-400">
+        X : <span class="text-red-400">{{ position.x.toFixed(3) }}</span>
+        Y : <span class="ml-3 text-green-400">{{ (-position.z).toFixed(3) }}</span>
+        Z : <span class="ml-3 text-blue-400">{{ (-position.y).toFixed(3) }}</span>
       </p>
-      <p class="mb-3 text-xs text-zinc-500">
+      <p class="text-xs text-zinc-500">
         Orientation:
         α <span class="text-zinc-300">{{ orientation.available ? orientation.alpha.toFixed(1) : '--' }}</span>
         β <span class="text-zinc-300">{{ orientation.available ? orientation.beta.toFixed(1) : '--' }}</span>
         γ <span class="text-zinc-300">{{ orientation.available ? orientation.gamma.toFixed(1) : '--' }}</span>
       </p>
-      <div ref="container" class="h-72 w-full rounded border border-zinc-800" />
-      <p class="mt-2 text-xs text-zinc-500">赤: X軸 (+左 / -右) ・ 緑: Z軸 (+手前 / -奥) ・ 青: Y軸 (+上 / -下)</p>
     </div>
   </div>
 </template>
-
 <script setup lang="ts">
 import * as THREE from 'three'
 import { onBeforeUnmount, onMounted, ref, watch } from 'vue'

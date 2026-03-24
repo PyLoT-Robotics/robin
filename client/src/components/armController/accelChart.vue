@@ -1,25 +1,14 @@
 <template>
-    <div class="p-4 pt-0">
-      <div class="rounded border border-zinc-700 bg-zinc-950 p-3">
-        <div class="mb-2 flex items-center justify-between gap-3">
-          <h3 class="text-sm font-semibold text-zinc-300">Realtime Acceleration Graph</h3>
-          <button
-            type="button"
-            class="rounded border border-zinc-600 px-2 py-1 text-xs font-medium text-zinc-200 transition-colors hover:border-zinc-400 hover:bg-zinc-800"
-            @click="showRawData = !showRawData"
-          >
-            {{ showRawData ? '生データ: 表示中' : '生データ: 非表示' }}
-          </button>
-        </div>
-        <div class="h-72 w-full">
-          <canvas ref="accelChartCanvas" class="h-full w-full" />
-        </div>
-      </div>
+  <details class="border-b border-zinc-700">
+    <summary class="cursor-pointer select-none px-3 py-2 text-sm text-zinc-300">Acceleration Graph</summary>
+    <div class="h-72 w-full">
+      <canvas ref="accelChartCanvas" class="h-full w-full" />
     </div>
+  </details>
 </template>
 <script setup lang="ts">
 import { Chart, type ChartDataset } from 'chart.js/auto'
-import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { onBeforeUnmount, onMounted, ref } from 'vue'
 
 type Vector = {
   x: number
@@ -34,7 +23,6 @@ const {
 }>()
 
 const accelChartCanvas = ref<HTMLCanvasElement | null>(null)
-const showRawData = ref(true)
 let accelChart: Chart<'line', number[], string> | null = null
 let sampleCount = 0
 let sampleIntervalId: number | null = null
@@ -94,7 +82,6 @@ function applyRawVisibility(): void {
   for (let i = 0; i < 3; i += 1) {
     const dataset = accelChart.data.datasets[i]
     if (!dataset) continue
-    dataset.hidden = !showRawData.value
   }
 }
 
@@ -173,12 +160,6 @@ function appendCurrentAccelerationSample(): void {
 
   accelChart.update('none')
 }
-
-watch(showRawData, () => {
-  if (!accelChart) return
-  applyRawVisibility()
-  accelChart.update('none')
-})
 
 onMounted(() => {
   initChart()

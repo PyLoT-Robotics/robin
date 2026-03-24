@@ -1,12 +1,10 @@
 <template>
-    <div class="p-4 pt-0">
-      <div class="rounded border border-zinc-700 bg-zinc-950 p-3">
-        <h3 class="mb-2 text-sm font-semibold text-zinc-300">Realtime Velocity Graph</h3>
-        <div class="h-72 w-full">
-          <canvas ref="velocityChartCanvas" class="h-full w-full" />
-        </div>
-      </div>
+  <details>
+    <summary class="cursor-pointer select-none px-3 py-2 text-sm text-zinc-300">Velocity Graph</summary>
+    <div class="h-72 w-full">
+      <canvas ref="velocityChartCanvas" class="h-full w-full" />
     </div>
+  </details>
 </template>
 <script setup lang="ts">
 import { Chart, type ChartDataset } from 'chart.js/auto'
