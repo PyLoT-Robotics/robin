@@ -3,12 +3,18 @@
     <div class="rounded border border-zinc-700 bg-zinc-950 p-3">
       <h3 class="mb-2 text-sm font-semibold text-zinc-300">Position (Integrated, Device Axes)</h3>
       <p class="mb-3 text-xs text-zinc-400">
-        X (負=左): <span class="text-red-400">{{ (-position.x).toFixed(3) }}</span>
+        X (負=右): <span class="text-red-400">{{ position.x.toFixed(3) }}</span>
         Y (負=下): <span class="ml-3 text-green-400">{{ (-position.z).toFixed(3) }}</span>
         Z (負=奥): <span class="ml-3 text-blue-400">{{ (-position.y).toFixed(3) }}</span>
       </p>
+      <p class="mb-3 text-xs text-zinc-500">
+        Orientation:
+        α <span class="text-zinc-300">{{ orientation.available ? orientation.alpha.toFixed(1) : '--' }}</span>
+        β <span class="text-zinc-300">{{ orientation.available ? orientation.beta.toFixed(1) : '--' }}</span>
+        γ <span class="text-zinc-300">{{ orientation.available ? orientation.gamma.toFixed(1) : '--' }}</span>
+      </p>
       <div ref="container" class="h-72 w-full rounded border border-zinc-800" />
-      <p class="mt-2 text-xs text-zinc-500">赤: X軸 (+右 / -左) ・ 緑: Z軸 (+手前 / -奥) ・ 青: Y軸 (+上 / -下)</p>
+      <p class="mt-2 text-xs text-zinc-500">赤: X軸 (+左 / -右) ・ 緑: Z軸 (+手前 / -奥) ・ 青: Y軸 (+上 / -下)</p>
     </div>
   </div>
 </template>
@@ -33,6 +39,16 @@ type Orientation = {
 type ThreeVectorLike = {
   set: (x: number, y: number, z: number) => void
   normalize: () => ThreeVectorLike
+  clone: () => ThreeVectorLike
+  applyQuaternion: (quaternion: ThreeQuaternionLike) => ThreeVectorLike
+}
+
+type ThreeQuaternionLike = {
+  setFromEuler: (euler: unknown) => ThreeQuaternionLike
+  setFromAxisAngle: (axis: unknown, angle: number) => ThreeQuaternionLike
+  multiply: (quaternion: ThreeQuaternionLike) => ThreeQuaternionLike
+  clone: () => ThreeQuaternionLike
+  invert: () => ThreeQuaternionLike
 }
 
 type ThreeArrowLike = {
@@ -43,6 +59,9 @@ type ThreeArrowLike = {
 type ThreeCameraLike = {
   aspect: number
   position: {
+    set: (x: number, y: number, z: number) => void
+  }
+  up: {
     set: (x: number, y: number, z: number) => void
   }
   lookAt: (x: number, y: number, z: number) => void
@@ -81,7 +100,12 @@ let zArrow: ThreeArrowLike | null = null
 const ORIGIN = new THREE.Vector3(0, 0, 0) as unknown
 const MIN_LENGTH = 0.02
 const SCALE = 3
-const BASE_CAMERA_POSITION = new THREE.Vector3(0.5, 1, 3)
+const BASE_CAMERA_POSITION = new THREE.Vector3(0.001, 3, 0)
+const Z_AXIS = new THREE.Vector3(0, 0, 1)
+const WORLD_UP = new THREE.Vector3(0, 0, 1)
+const DEVICE_TO_WORLD_QUATERNION = new THREE.Quaternion(-Math.sqrt(0.5), 0, 0, Math.sqrt(0.5)) as unknown as ThreeQuaternionLike
+
+let referenceQuaternionInverse: ThreeQuaternionLike | null = null
 
 function clampLength(value: number): number {
   return Math.max(MIN_LENGTH, Math.min(2, Math.abs(value) * SCALE))
@@ -107,33 +131,80 @@ function renderScene(): void {
 }
 
 function applyPositionToArrows(): void {
-  updateArrow(xArrow, 'x', -position.x)
+  updateArrow(xArrow, 'x', position.x)
   updateArrow(yArrow, 'y', -position.z)
   updateArrow(zArrow, 'z', -position.y)
   renderScene()
 }
 
-function applyOrientationToCamera(): void {
-  if (!camera) return
+function getScreenOrientationAngleRad(): number {
+  if (typeof window === 'undefined') return 0
 
+  if (window.screen.orientation && typeof window.screen.orientation.angle === 'number') {
+    return window.screen.orientation.angle * Math.PI / 180
+  }
+
+  const legacyOrientation = window.orientation
+  if (typeof legacyOrientation === 'number') {
+    return legacyOrientation * Math.PI / 180
+  }
+
+  return 0
+}
+
+function createDeviceQuaternion(): ThreeQuaternionLike | null {
   if (!orientation.available) {
-    camera.position.set(BASE_CAMERA_POSITION.x, BASE_CAMERA_POSITION.y, BASE_CAMERA_POSITION.z)
-    camera.lookAt(0, 0, 0)
-    renderScene()
-    return
+    return null
   }
 
   const alpha = orientation.alpha * Math.PI / 180
   const beta = orientation.beta * Math.PI / 180
   const gamma = orientation.gamma * Math.PI / 180
+  const orient = getScreenOrientationAngleRad()
 
-  const rotatedPosition = BASE_CAMERA_POSITION.clone().applyEuler(
-    new THREE.Euler(beta, alpha, -gamma, 'YXZ'),
-  )
+  const euler = new THREE.Euler(-beta, gamma, -alpha, 'YXZ')
+  const deviceQuaternion = new THREE.Quaternion().setFromEuler(euler) as unknown as ThreeQuaternionLike
+  const screenQuaternion = new THREE.Quaternion().setFromAxisAngle(Z_AXIS, -orient) as unknown as ThreeQuaternionLike
+
+  deviceQuaternion.multiply(DEVICE_TO_WORLD_QUATERNION)
+  deviceQuaternion.multiply(screenQuaternion)
+
+  return deviceQuaternion
+}
+
+function applyOrientationToCamera(): void {
+  if (!camera) return
+
+  const deviceQuaternion = createDeviceQuaternion()
+
+  if (!deviceQuaternion) {
+    referenceQuaternionInverse = null
+    camera.position.set(BASE_CAMERA_POSITION.x, BASE_CAMERA_POSITION.y, BASE_CAMERA_POSITION.z)
+    camera.up.set(WORLD_UP.x, WORLD_UP.y, WORLD_UP.z)
+    camera.lookAt(0, 0, 0)
+    renderScene()
+    return
+  }
+
+  if (!referenceQuaternionInverse) {
+    referenceQuaternionInverse = deviceQuaternion.clone().invert()
+  }
+
+  const relativeQuaternion = referenceQuaternionInverse.clone().multiply(deviceQuaternion)
+
+  const rotatedUp = WORLD_UP.clone().applyQuaternion(relativeQuaternion)
+  camera.up.set(rotatedUp.x, rotatedUp.y, rotatedUp.z)
+
+  const rotatedPosition = BASE_CAMERA_POSITION.clone().applyQuaternion(relativeQuaternion)
 
   camera.position.set(rotatedPosition.x, rotatedPosition.y, rotatedPosition.z)
   camera.lookAt(0, 0, 0)
   renderScene()
+}
+
+function handleScreenOrientationChange(): void {
+  referenceQuaternionInverse = null
+  applyOrientationToCamera()
 }
 
 function setupThree(): void {
@@ -191,6 +262,7 @@ function setupThree(): void {
 
 onMounted(() => {
   setupThree()
+  window.addEventListener('orientationchange', handleScreenOrientationChange)
 })
 
 watch(
@@ -215,6 +287,7 @@ watch(
 )
 
 onBeforeUnmount(() => {
+  window.removeEventListener('orientationchange', handleScreenOrientationChange)
   resizeObserver?.disconnect()
   resizeObserver = null
 
