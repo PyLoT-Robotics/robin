@@ -21,6 +21,15 @@
       <VelocityChart
         :velocity="velocity"/>
     </div>
+    <button
+      class="grid place-content-center grow text-4xl select-none"
+      @click="isPublishingTopic = !isPublishingTopic"
+      :class="{
+        'bg-blue-700/40': !isPublishingTopic,
+        'bg-blue-700': isPublishingTopic,
+      }">
+      Publish Topic
+    </button>
     <div class="basis-52 min-h-52 flex flex-row">
       <button
         class="grid place-content-center grow text-4xl select-none"
@@ -44,11 +53,20 @@
   </div>
 </template>
 <script setup lang="ts">
+import { createTopic, type Ros } from '@/api/ros'
 import AccelChart from '@/components/armController/accelChart.vue'
 import PositionVectorView from '@/components/armController/positionVectorView.vue'
 import VelocityChart from '@/components/armController/velocityChart.vue'
 import { useAccelerometer } from '@/hooks/useAccelerometer'
 import { onBeforeUnmount, onMounted, reactive, ref } from 'vue'
+
+const { ros } = defineProps<{
+  ros: Ros
+}>()
+
+const isPublishingTopic = ref(false)
+const armControllerPositionTopicName = '/robin/arm_controller'
+const armControllerTopic = createTopic(ros, armControllerPositionTopicName, 'geometry_msgs/Vector3')
 
 const moveActive = ref(false)
 
@@ -157,6 +175,14 @@ function loop(){
     velocity.x = 0
     velocity.y = 0
     velocity.z = 0
+  }
+
+  if( isPublishingTopic.value ){
+    armControllerTopic.publish({
+      x: position.x,
+      y: position.y,
+      z: position.z,
+    })
   }
 }
 
