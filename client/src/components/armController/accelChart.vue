@@ -19,7 +19,7 @@
 </template>
 <script setup lang="ts">
 import { Chart, type ChartDataset } from 'chart.js/auto'
-import { onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
+import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
 
 type Vector = {
   x: number
@@ -28,11 +28,9 @@ type Vector = {
 }
 
 const {
-  acceleration,
-  smoothedAcceleration,
+  acceleration
 } = defineProps<{
   acceleration: Vector
-  smoothedAcceleration: Vector
 }>()
 
 const accelChartCanvas = ref<HTMLCanvasElement | null>(null)
@@ -67,7 +65,6 @@ function createDatasets(): ChartDataset<'line', number[]>[] {
       borderColor: '#60a5fa',
       backgroundColor: '#60a5fa',
       pointRadius: 0,
-      borderDash: [2, 4],
       borderWidth: 1.5,
       tension: 0.2,
     },
@@ -77,7 +74,6 @@ function createDatasets(): ChartDataset<'line', number[]>[] {
       borderColor: '#34d399',
       backgroundColor: '#34d399',
       pointRadius: 0,
-      borderDash: [2, 4],
       borderWidth: 1.5,
       tension: 0.2,
     },
@@ -87,37 +83,9 @@ function createDatasets(): ChartDataset<'line', number[]>[] {
       borderColor: '#f59e0b',
       backgroundColor: '#f59e0b',
       pointRadius: 0,
-      borderDash: [2, 4],
       borderWidth: 1.5,
       tension: 0.2,
-    },
-    {
-      label: 'Smooth X',
-      data: [],
-      borderColor: '#3b82f6',
-      backgroundColor: '#3b82f6',
-      pointRadius: 0,
-      borderWidth: 1.5,
-      tension: 0.2,
-    },
-    {
-      label: 'Smooth Y',
-      data: [],
-      borderColor: '#10b981',
-      backgroundColor: '#10b981',
-      pointRadius: 0,
-      borderWidth: 1.5,
-      tension: 0.2,
-    },
-    {
-      label: 'Smooth Z',
-      data: [],
-      borderColor: '#d97706',
-      backgroundColor: '#d97706',
-      pointRadius: 0,
-      borderWidth: 1.5,
-      tension: 0.2,
-    },
+    }
   ]
 }
 
@@ -194,10 +162,7 @@ function appendCurrentAccelerationSample(): void {
   const datasetValues = [
     acceleration.x,
     acceleration.y,
-    acceleration.z,
-    smoothedAcceleration.x,
-    smoothedAcceleration.y,
-    smoothedAcceleration.z,
+    acceleration.z
   ]
 
   datasetValues.forEach((value, index) => {

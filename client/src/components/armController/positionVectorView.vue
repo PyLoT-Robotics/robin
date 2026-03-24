@@ -1,14 +1,14 @@
 <template>
   <div class="p-4 pt-0">
     <div class="rounded border border-zinc-700 bg-zinc-950 p-3">
-      <h3 class="mb-2 text-sm font-semibold text-zinc-300">Position (Integrated)</h3>
+      <h3 class="mb-2 text-sm font-semibold text-zinc-300">Position (Integrated, Device Axes)</h3>
       <p class="mb-3 text-xs text-zinc-400">
-        X: <span class="text-red-400">{{ position.x.toFixed(3) }}</span>
-        Y: <span class="ml-3 text-green-400">{{ position.y.toFixed(3) }}</span>
-        Z: <span class="ml-3 text-blue-400">{{ position.z.toFixed(3) }}</span>
+        X (負=左): <span class="text-red-400">{{ (-position.x).toFixed(3) }}</span>
+        Y (負=下): <span class="ml-3 text-green-400">{{ (-position.z).toFixed(3) }}</span>
+        Z (負=奥): <span class="ml-3 text-blue-400">{{ (-position.y).toFixed(3) }}</span>
       </p>
       <div ref="container" class="h-72 w-full rounded border border-zinc-800" />
-      <p class="mt-2 text-xs text-zinc-500">赤: X軸 / 緑: Y軸 / 青: Z軸</p>
+      <p class="mt-2 text-xs text-zinc-500">赤: X軸 (+右 / -左) ・ 緑: Z軸 (+手前 / -奥) ・ 青: Y軸 (+上 / -下)</p>
     </div>
   </div>
 </template>
@@ -21,6 +21,13 @@ type Vector = {
   x: number
   y: number
   z: number
+}
+
+type Orientation = {
+  alpha: number
+  beta: number
+  gamma: number
+  available: boolean
 }
 
 type ThreeVectorLike = {
@@ -55,8 +62,9 @@ type ThreeSceneLike = {
   add: (object: unknown) => void
 }
 
-const { position } = defineProps<{
+const { position, orientation } = defineProps<{
   position: Vector
+  orientation: Orientation
 }>()
 
 const container = ref<HTMLDivElement | null>(null)
@@ -73,6 +81,7 @@ let zArrow: ThreeArrowLike | null = null
 const ORIGIN = new THREE.Vector3(0, 0, 0) as unknown
 const MIN_LENGTH = 0.02
 const SCALE = 3
+const BASE_CAMERA_POSITION = new THREE.Vector3(0.5, 1, 3)
 
 function clampLength(value: number): number {
   return Math.max(MIN_LENGTH, Math.min(2, Math.abs(value) * SCALE))
@@ -98,9 +107,32 @@ function renderScene(): void {
 }
 
 function applyPositionToArrows(): void {
-  updateArrow(xArrow, 'x', position.x)
-  updateArrow(yArrow, 'y', position.y)
-  updateArrow(zArrow, 'z', position.z)
+  updateArrow(xArrow, 'x', -position.x)
+  updateArrow(yArrow, 'y', -position.z)
+  updateArrow(zArrow, 'z', -position.y)
+  renderScene()
+}
+
+function applyOrientationToCamera(): void {
+  if (!camera) return
+
+  if (!orientation.available) {
+    camera.position.set(BASE_CAMERA_POSITION.x, BASE_CAMERA_POSITION.y, BASE_CAMERA_POSITION.z)
+    camera.lookAt(0, 0, 0)
+    renderScene()
+    return
+  }
+
+  const alpha = orientation.alpha * Math.PI / 180
+  const beta = orientation.beta * Math.PI / 180
+  const gamma = orientation.gamma * Math.PI / 180
+
+  const rotatedPosition = BASE_CAMERA_POSITION.clone().applyEuler(
+    new THREE.Euler(beta, alpha, -gamma, 'YXZ'),
+  )
+
+  camera.position.set(rotatedPosition.x, rotatedPosition.y, rotatedPosition.z)
+  camera.lookAt(0, 0, 0)
   renderScene()
 }
 
@@ -113,8 +145,8 @@ function setupThree(): void {
   scene = new THREE.Scene() as unknown as ThreeSceneLike
   scene.background = new THREE.Color('#0a0a0a')
 
-  camera = new THREE.PerspectiveCamera(50, width / height, 0.01, 100) as unknown as ThreeCameraLike
-  camera.position.set(2.6, 2.1, 2.6)
+  camera = new THREE.PerspectiveCamera(48, width / height, 0.01, 100) as unknown as ThreeCameraLike
+  camera.position.set(BASE_CAMERA_POSITION.x, BASE_CAMERA_POSITION.y, BASE_CAMERA_POSITION.z)
   camera.lookAt(0, 0, 0)
 
   renderer = new THREE.WebGLRenderer({ antialias: true }) as unknown as ThreeRendererLike
@@ -154,6 +186,7 @@ function setupThree(): void {
   resizeObserver.observe(container.value)
 
   applyPositionToArrows()
+  applyOrientationToCamera()
 }
 
 onMounted(() => {
@@ -164,6 +197,19 @@ watch(
   () => ({ x: position.x, y: position.y, z: position.z }),
   () => {
     applyPositionToArrows()
+  },
+  { deep: false },
+)
+
+watch(
+  () => ({
+    alpha: orientation.alpha,
+    beta: orientation.beta,
+    gamma: orientation.gamma,
+    available: orientation.available,
+  }),
+  () => {
+    applyOrientationToCamera()
   },
   { deep: false },
 )
