@@ -1,5 +1,6 @@
 robin/**/__pycache__
 .qodo
+.DS_Store
 build
 install
 log

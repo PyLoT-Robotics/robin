@@ -3,7 +3,7 @@ import { fileURLToPath, URL } from 'node:url'
 import fs from 'node:fs'
 import path from 'node:path'
 
-import { defineConfig } from 'vite-plus'
+import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 
 import { VitePWA } from 'vite-plugin-pwa'
