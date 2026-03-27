@@ -94,7 +94,7 @@ let xArrow: ThreeArrowLike | null = null
 let yArrow: ThreeArrowLike | null = null
 let zArrow: ThreeArrowLike | null = null
 
-const ORIGIN = new THREE.Vector3(0, 0, 0) as unknown
+const ORIGIN = new THREE.Vector3(0, 0, 0)
 const MIN_LENGTH = 0.02
 const SCALE = 3
 const BASE_CAMERA_POSITION = new THREE.Vector3(0.001, 3, 0)
@@ -189,10 +189,10 @@ function applyOrientationToCamera(): void {
 
   const relativeQuaternion = referenceQuaternionInverse.clone().multiply(deviceQuaternion)
 
-  const rotatedUp = WORLD_UP.clone().applyQuaternion(relativeQuaternion)
+  const rotatedUp = WORLD_UP.clone().applyQuaternion(relativeQuaternion as any)
   camera.up.set(rotatedUp.x, rotatedUp.y, rotatedUp.z)
 
-  const rotatedPosition = BASE_CAMERA_POSITION.clone().applyQuaternion(relativeQuaternion)
+  const rotatedPosition = BASE_CAMERA_POSITION.clone().applyQuaternion(relativeQuaternion as any)
 
   camera.position.set(rotatedPosition.x, rotatedPosition.y, rotatedPosition.z)
   camera.lookAt(0, 0, 0)
@@ -230,9 +230,9 @@ function setupThree(): void {
   const grid = new THREE.GridHelper(4, 8, '#27272a', '#18181b')
   const axes = new THREE.AxesHelper(1.1)
 
-  xArrow = new THREE.ArrowHelper(new THREE.Vector3(1, 0, 0), ORIGIN, MIN_LENGTH, '#ef4444', 0.15, 0.08) as unknown as ThreeArrowLike
-  yArrow = new THREE.ArrowHelper(new THREE.Vector3(0, 1, 0), ORIGIN, MIN_LENGTH, '#22c55e', 0.15, 0.08) as unknown as ThreeArrowLike
-  zArrow = new THREE.ArrowHelper(new THREE.Vector3(0, 0, 1), ORIGIN, MIN_LENGTH, '#3b82f6', 0.15, 0.08) as unknown as ThreeArrowLike
+  xArrow = new THREE.ArrowHelper(new THREE.Vector3(1, 0, 0), ORIGIN as any, MIN_LENGTH, '#ef4444', 0.15, 0.08) as unknown as ThreeArrowLike
+  yArrow = new THREE.ArrowHelper(new THREE.Vector3(0, 1, 0), ORIGIN as any, MIN_LENGTH, '#22c55e', 0.15, 0.08) as unknown as ThreeArrowLike
+  zArrow = new THREE.ArrowHelper(new THREE.Vector3(0, 0, 1), ORIGIN as any, MIN_LENGTH, '#3b82f6', 0.15, 0.08) as unknown as ThreeArrowLike
 
   scene.add(ambientLight)
   scene.add(directionalLight)

@@ -28,23 +28,6 @@ const httpsOptions = (() => {
 
 // https://vite.dev/config/
 export default defineConfig({
-  fmt: {
-    semi: false,
-    singleQuote: true,
-  },
-  lint: {
-    plugins: ['eslint', 'typescript', 'unicorn', 'oxc', 'vue', 'vitest'],
-    env: {
-      browser: true,
-    },
-    categories: {
-      correctness: 'error',
-    },
-    options: {
-      typeAware: true,
-      typeCheck: true,
-    },
-  },
   preview: {
     strictPort: true
   },
