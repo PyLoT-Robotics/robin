@@ -2,11 +2,11 @@
   <main class="flex flex-row bg-zinc-950 w-dvw h-dvh">
     <div
       class="shrink-0 overflow-hidden transition-[width] duration-300 ease-in-out"
-      :class="shownUI.controller.shown ? 'w-40' : 'w-0'"
+      :class="controllerStatus.shown ? 'w-40' : 'w-0'"
     >
       <ControllerLeft
         class="transition-transform duration-300 ease-in-out"
-        :class="shownUI.controller.shown ? 'translate-x-0' : '-translate-x-full'"
+        :class="controllerStatus.shown ? 'translate-x-0' : '-translate-x-full'"
         v-model:leftStick="control.leftStick"
         v-model:leftTrigger="control.LT"
         v-model:leftBumper="control.LB"
@@ -25,11 +25,11 @@
       </div>
       <div
         class="shrink-0 overflow-hidden transition-[height] duration-300 ease-in-out"
-        :class="shownUI.chat.shown ? 'h-12' : 'h-0'"
+        :class="isMessageShown ? 'h-12' : 'h-0'"
       >
         <div
           class="border-b border-border h-12 transition-transform duration-300 ease-in-out"
-          :class="shownUI.chat.shown ? 'translate-y-0' : '-translate-y-full'"
+          :class="isMessageShown ? 'translate-y-0' : '-translate-y-full'"
         >
           <Message/>
         </div>
@@ -41,48 +41,17 @@
         }"
       >
         <div
-          v-if="shownUI.video.shown"
-          class="grow overflow-hidden"
-          :class="isPortrait ? 'h-0' : 'w-0'"
-        >
-          <LiveVideo />
+          v-for="(view, key) in views"
+          :key="key">
+          <div
+            v-if="shownViews[key]"
+            class="grow overflow-hidden"
+            :class="isPortrait ? 'h-0' : 'w-0'">
+            <component :is="view.component" />
+          </div>
         </div>
         <div
-          v-if="shownUI.console.shown"
-          class="grow overflow-hidden text-zinc-200"
-          :class="isPortrait ? 'h-0' : 'w-0'"
-        >
-          <Log />
-        </div>
-        <div
-          v-if="shownUI.armController.shown"
-          class="grow overflow-hidden"
-          :class="isPortrait ? 'h-0' : 'w-0'"
-        >
-          <ArmController/>
-        </div>
-        <div
-          v-if="shownUI.map.shown"
-          class="grow overflow-hidden"
-          :class="isPortrait ? 'h-0' : 'w-0'"
-        >
-          <Map />
-        </div>
-        <div
-          v-if="shownUI.settings.shown"
-          class="grow overflow-hidden"
-          :class="isPortrait ? 'h-0' : 'w-0'"
-        >
-          <Settings/>
-        </div>
-        <div
-          v-if="
-            !shownUI.video.shown &&
-            !shownUI.console.shown &&
-            !shownUI.armController.shown &&
-            !shownUI.map.shown &&
-            !shownUI.settings.shown
-          "
+          v-if="isAllUINotShown"
           class="grow overflow-hidden grid place-content-center text-zinc-200 text-4xl"
           :class="isPortrait ? 'h-0' : 'w-0'"
         >
@@ -91,27 +60,26 @@
       </div>
       <div class="border-t border-border basis-12 flex justify-center overflow-x-auto">
         <button
-          v-for="(button, key) in shownUI"
-          :key
+          v-for="({ icon }, key) in views"
+          :key="key"
           class="px-4 border-x border-border grid place-content-center"
-          @click="shownUI[key].shown = !shownUI[key].shown"
+          @click="shownViews[key] = !shownViews[key]"
           :class="{
-            'bg-zinc-600 text-zinc-900': button.shown,
-            'text-zinc-400': !button.shown,
-            hidden: !button.available,
+            'bg-zinc-600 text-zinc-900': shownViews[key],
+            'text-zinc-400': !shownViews[key]
           }"
         >
-          <Icon :icon="button.icon" class="text-2xl" />
+          <Icon :icon="icon" class="text-2xl" />
         </button>
       </div>
     </div>
     <div
       class="shrink-0 overflow-hidden transition-[width] duration-300 ease-in-out"
-      :class="shownUI.controller.shown ? 'w-40' : 'w-0'"
+      :class="controllerStatus.shown ? 'w-40' : 'w-0'"
     >
       <ControllerRight
         class="transition-transform duration-300 ease-in-out"
-        :class="shownUI.controller.shown ? 'translate-x-0' : 'translate-x-full'"
+        :class="controllerStatus.shown ? 'translate-x-0' : 'translate-x-full'"
         v-model:rightStick="control.rightStick"
         v-model:rightTrigger="control.RT"
         v-model:rightBumper="control.RB"
@@ -124,19 +92,34 @@
   </main>
 </template>
 <script setup lang="ts">
-import ArmController from '@/components/armController.vue'
 import ControllerLeft from '@/components/controller/controller_left.vue'
 import ControllerRight from '@/components/controller/controller_right.vue'
-import LiveVideo from '@/components/live_video.vue'
-import Settings from '@/components/settings.vue'
-import Log from '@/components/log.vue'
 import { Icon } from '@iconify/vue'
-import { onMounted, onUnmounted, reactive, ref, watch } from 'vue'
+import { computed, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
 import { ros, status } from '@/plugins/ros'
 import Message from './components/message.vue'
-import Map from '@/components/map.vue'
 import { createControllerTopicInterval } from './utils/createControllerTopicInterval'
 import type { Control } from './model/control'
+
+import { views } from './views'
+
+const controllerStatus = reactive({
+  available: false,
+  shown: false,
+})
+const isMessageShown = ref(false)
+const shownViews = reactive<Partial<Record<keyof typeof views, boolean>>>({})
+
+const isAllUINotShown = computed(() => {
+  let tmp = true
+  for(const key in shownViews){
+    if( shownViews[key as keyof typeof shownViews] ){
+      tmp = false
+      break
+    }
+  }
+  return tmp
+})
 
 const isPortrait = ref(false)
 
@@ -156,26 +139,9 @@ onUnmounted(() => {
 })
 
 watch(isPortrait, (changedToPortrait) => {
-  if (changedToPortrait) {
-    shownUI.controller.shown = false
-    shownUI.controller.available = false
-  } else {
-    shownUI.controller.available = true
+  if ( changedToPortrait && shownViews.controller ) {
+    shownViews.controller = false
   }
-})
-
-const shownUI = reactive({
-  controller: { icon: 'bi:controller', shown: false, available: true },
-  chat: { icon: 'bi:chat-left-dots', shown: false, available: true },
-  video: { icon: 'fa6-solid:video', shown: false, available: true },
-  console: { icon: 'bi:terminal', shown: false, available: true },
-  map: { icon: 'bi:map', shown: false, available: true },
-  armController: {
-    icon: 'streamline-ultimate:factory-industrial-robot-arm-1-bold',
-    shown: false,
-    available: true,
-  },
-  settings: { icon: 'bi:gear-wide-connected', shown: false, available: true },
 })
 
 const control = reactive<Control>({
@@ -206,7 +172,7 @@ let joyInterval: ReturnType<typeof setTimeout> | null = null
 const joyTopicTPS = 30
 
 watch(
-  () => shownUI.controller.shown,
+  () => controllerStatus.shown,
   (shown) => {
     console.log('hi!')
     if (shown) {
