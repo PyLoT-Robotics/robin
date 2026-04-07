@@ -11,10 +11,6 @@ type ViewDefinition = {
 }
 
 export const views = {
-  controller: {
-    icon: 'bi:controller',
-    component: ArmController,
-  },
   live_video: {
     icon: 'fa6-solid:video',
     component: LiveVideo,

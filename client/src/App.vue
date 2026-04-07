@@ -67,6 +67,11 @@
           :isActive="isMessageShown"
           icon="mdi:message-text"/>
         <ViewTabButton
+          v-if="controllerStatus.available"
+          @click="controllerStatus.shown = !controllerStatus.shown"
+          :isActive="controllerStatus.shown"
+          icon="bi:controller"/>
+        <ViewTabButton
           v-for="({ icon }, key) in views"
           :key="key"
           @click="shownViews[key] = !shownViews[key]"
@@ -140,9 +145,10 @@ onUnmounted(() => {
 })
 
 watch(isPortrait, (changedToPortrait) => {
-  if ( changedToPortrait && shownViews.controller ) {
-    shownViews.controller = false
+  if ( changedToPortrait && controllerStatus.shown ) {
+    controllerStatus.shown = false
   }
+  controllerStatus.available = !changedToPortrait
 })
 
 const control = reactive<Control>({
