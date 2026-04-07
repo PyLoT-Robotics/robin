@@ -63,19 +63,16 @@
       </div>
       <div class="border-t border-border basis-12 flex justify-center overflow-x-auto">
         <ViewTabButton
-          @click="isMessageShown = !isMessageShown"
-          :isActive="isMessageShown"
+          v-model:isActive="isMessageShown"
           icon="mdi:message-text"/>
         <ViewTabButton
           v-if="controllerStatus.available"
-          @click="controllerStatus.shown = !controllerStatus.shown"
-          :isActive="controllerStatus.shown"
+          v-model:isActive="controllerStatus.shown"
           icon="bi:controller"/>
         <ViewTabButton
           v-for="({ icon }, key) in views"
           :key="key"
-          @click="shownViews[key] = !shownViews[key]"
-          :isActive="!!shownViews[key]"
+          v-model:isActive="shownViews[key]"
           :icon="icon"/>
       </div>
     </div>
@@ -114,7 +111,12 @@ const controllerStatus = reactive({
   shown: false,
 })
 const isMessageShown = ref(true)
-const shownViews = reactive<Partial<Record<keyof typeof views, boolean>>>({})
+const shownViews = reactive<Record<keyof typeof views, boolean>>(
+  Object.keys(views).reduce((acc, key) => {
+    acc[key as keyof typeof views] = false
+    return acc
+  }, {} as Record<keyof typeof views, boolean>),
+)
 
 const isAllUINotShown = computed(() => {
   let tmp = true

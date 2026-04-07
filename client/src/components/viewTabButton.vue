@@ -1,5 +1,6 @@
 <template>
   <button
+    @click="isActive = !isActive"
     class="px-4 border-x border-border grid place-content-center"
     :class="{
       'bg-zinc-600 text-zinc-900': isActive,
@@ -13,10 +14,10 @@
 import { Icon } from '@iconify/vue'
 
 const {
-  isActive,
   icon
 } = defineProps<{
-  isActive: boolean
   icon: string
 }>()
+
+const isActive = defineModel<boolean>('isActive', { required: true })
 </script>
