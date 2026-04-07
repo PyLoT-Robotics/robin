@@ -42,13 +42,16 @@
       >
         <div
           v-for="(view, key) in views"
-          :key="key">
-          <div
+          :key="key"
+          class="grow overflow-hidden"
+          :class="{
+            'hidden': !shownViews[key],
+            'h-0': isPortrait,
+            'w-0': !isPortrait,
+          }">
+          <component
             v-if="shownViews[key]"
-            class="grow overflow-hidden"
-            :class="isPortrait ? 'h-0' : 'w-0'">
-            <component :is="view.component" />
-          </div>
+            :is="view.component" />
         </div>
         <div
           v-if="isAllUINotShown"
@@ -59,18 +62,16 @@
         </div>
       </div>
       <div class="border-t border-border basis-12 flex justify-center overflow-x-auto">
-        <button
+        <ViewTabButton
+          @click="isMessageShown = !isMessageShown"
+          :isActive="isMessageShown"
+          icon="mdi:message-text"/>
+        <ViewTabButton
           v-for="({ icon }, key) in views"
           :key="key"
-          class="px-4 border-x border-border grid place-content-center"
           @click="shownViews[key] = !shownViews[key]"
-          :class="{
-            'bg-zinc-600 text-zinc-900': shownViews[key],
-            'text-zinc-400': !shownViews[key]
-          }"
-        >
-          <Icon :icon="icon" class="text-2xl" />
-        </button>
+          :isActive="!!shownViews[key]"
+          :icon="icon"/>
       </div>
     </div>
     <div
@@ -94,12 +95,12 @@
 <script setup lang="ts">
 import ControllerLeft from '@/components/controller/controller_left.vue'
 import ControllerRight from '@/components/controller/controller_right.vue'
-import { Icon } from '@iconify/vue'
 import { computed, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
 import { ros, status } from '@/plugins/ros'
 import Message from './components/message.vue'
 import { createControllerTopicInterval } from './utils/createControllerTopicInterval'
 import type { Control } from './model/control'
+import ViewTabButton from './components/viewTabButton.vue'
 
 import { views } from './views'
 
@@ -107,7 +108,7 @@ const controllerStatus = reactive({
   available: false,
   shown: false,
 })
-const isMessageShown = ref(false)
+const isMessageShown = ref(true)
 const shownViews = reactive<Partial<Record<keyof typeof views, boolean>>>({})
 
 const isAllUINotShown = computed(() => {
