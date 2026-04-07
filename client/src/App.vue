@@ -43,11 +43,11 @@
         <div
           v-for="(view, key) in views"
           :key="key"
-          class="grow overflow-hidden"
+          class="grow overflow-hidden border-border"
           :class="{
             'hidden': !shownViews[key],
-            'h-0': isPortrait,
-            'w-0': !isPortrait,
+            'h-0 border-y-[0.5px]': isPortrait,
+            'w-0 border-x-[0.5px]': !isPortrait,
           }">
           <component
             v-if="shownViews[key]"
