@@ -151,7 +151,7 @@ watch(isPortrait, (changedToPortrait) => {
     controllerStatus.shown = false
   }
   controllerStatus.available = !changedToPortrait
-})
+}, { immediate: true })
 
 const control = reactive<Control>({
   LT: false,
