@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import {
 	createProxyServerConfig,
 	createProxyWebSocketHandlers,
-} from "./index";
+} from "./websocketProxy";
 
 const createClientMock = () => {
 	const sentMessages: unknown[] = [];
@@ -47,7 +47,7 @@ const createUpstreamMock = () => {
 	return { upstream, sentMessages, closeCalls };
 };
 
-describe("server proxy", () => {
+describe("websocket proxy", () => {
 	test("returns 426 when websocket upgrade fails", async () => {
 		const config = createProxyServerConfig({
 			port: 8080,
