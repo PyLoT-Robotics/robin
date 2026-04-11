@@ -32,6 +32,6 @@ Optional environment variables:
 - `PORT` (default: `8080`)
 - `HOST` (default: `0.0.0.0`)
 - `UPSTREAM_URL` (default: `ws://localhost:9090`)
-- `TLS_CERT_PATH` (default: `../client/certs/dev-cert.pem`)
-- `TLS_KEY_PATH` (default: `../client/certs/dev-key.pem`)
+- `TLS_CERT_PATH` (default: `../certs/dev-cert.pem`)
+- `TLS_KEY_PATH` (default: `../certs/dev-key.pem`)
 - `LOCAL_IP` (overrides auto-detected IP for startup log)
