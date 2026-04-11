@@ -1,9 +1,13 @@
+import { getLocalStorageItem } from '@/hooks/useLocalStorage'
 import * as RosLib from 'roslib'
 import type { Action, Ros, Topic } from 'roslib'
 import { ref } from 'vue'
 
+export const defaultRosWebsocketURL = `wss://${window.location.host}/rosbridge`
+
 export function createRos() {
-  const RosWebsocketUrl = `wss://${window.location.host}/rosbridge`
+  const storedWebSocketURL = getLocalStorageItem('WebSocketURL').trim()
+  const rosWebsocketURL = storedWebSocketURL || defaultRosWebsocketURL
   const ros = new RosLib.Ros()
 
   const status = ref<'connected' | 'closed' | 'error'>('closed')
@@ -19,7 +23,7 @@ export function createRos() {
     reconnectTimer = setTimeout(() => {
       reconnectTimer = null
       try {
-        ros.connect(RosWebsocketUrl)
+        ros.connect(rosWebsocketURL)
       } catch (err) {
         error.value = err instanceof Error ? err.message : String(err)
         scheduleReconnect()
@@ -50,7 +54,7 @@ export function createRos() {
     scheduleReconnect()
   })
 
-  ros.connect(RosWebsocketUrl)
+  ros.connect(rosWebsocketURL)
 
   return { ros, status, error }
 }
