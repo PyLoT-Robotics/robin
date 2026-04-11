@@ -19,6 +19,7 @@
 </template>
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref, watchEffect } from 'vue'
+import { buildVideoPublisherBaseURL, getConnectionHostFromStorage } from '@/api/ros'
 
 const remoteVideo = ref<HTMLVideoElement | null>(null)
 
@@ -111,6 +112,8 @@ async function pollInboundFrameStats() {
 
 onMounted(() => {
   const pc = new RTCPeerConnection()
+  const connectionHost = getConnectionHostFromStorage()
+  const videoPublisherOfferURL = `${buildVideoPublisherBaseURL(connectionHost)}/offer`
   peerConnection.value = pc
 
   nowTimer = setInterval(() => {
@@ -136,19 +139,16 @@ onMounted(() => {
 
     if (!pc.localDescription) throw new Error('Local description is null')
 
-    const response = await fetch(
-      `https://${window.location.hostname}:${window.location.port}/video_publisher/offer`,
-      {
-        method: 'POST',
-        body: JSON.stringify({
-          sdp: pc.localDescription.sdp,
-          type: pc.localDescription.type,
-        }),
-        headers: {
-          'Content-Type': 'application/json',
-        },
+    const response = await fetch(videoPublisherOfferURL, {
+      method: 'POST',
+      body: JSON.stringify({
+        sdp: pc.localDescription.sdp,
+        type: pc.localDescription.type,
+      }),
+      headers: {
+        'Content-Type': 'application/json',
       },
-    )
+    })
 
     if (!response.ok) {
       throw new Error('シグナリングサーバーからのレスポンスが不正です')

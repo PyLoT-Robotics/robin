@@ -25,16 +25,19 @@
     </div>
 
     <div class="flex flex-col gap-1 font-mono">
-      <p class="px-2 text-lg">websocket server url</p>
+      <p class="px-2 text-lg">Connection IP Address</p>
       <input
         ref="webSocketURLInput"
-        v-model.lazy="webSocketURL"
+        v-model.lazy="connectionHost"
         type="text"
         class="bg-zinc-900 text-zinc-200 px-2 py-1 border-y border-border outline-none"
-        placeholder="wss://example.com/rosbridge"
+        placeholder="192.168.0.10"
         @focus="handleWebSocketURLFocus"
         @blur="handleWebSocketURLBlur"
       />
+      <p class="px-2 text-sm text-zinc-400">
+        WebSocket: wss://&lt;IP&gt;:9091 / VideoPublisher: https://&lt;IP&gt;:8081
+      </p>
     </div>
   </div>
 </template>
@@ -42,7 +45,13 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { useLocalStorage } from '@/hooks/useLocalStorage'
-import { createTopic, defaultRosWebsocketURL, type Topic } from '@/api/ros'
+import {
+  createTopic,
+  defaultConnectionHost,
+  getConnectionHostFromStorage,
+  normalizeConnectionHost,
+  type Topic,
+} from '@/api/ros'
 import { useTopicsList } from '@/hooks/useTopicsList'
 import { ros } from '@/plugins/ros'
 
@@ -92,10 +101,10 @@ const logTopic = computed({
   },
 })
 
-const webSocketURL = computed({
-  get: () => webSocketURLStorage.value || defaultRosWebsocketURL,
+const connectionHost = computed({
+  get: () => getConnectionHostFromStorage(),
   set: (value: string) => {
-    webSocketURLStorage.value = value
+    webSocketURLStorage.value = normalizeConnectionHost(value)
   },
 })
 
@@ -104,15 +113,19 @@ const webSocketURLInput = ref<HTMLInputElement | null>(null)
 let webSocketURLBeforeEdit = ''
 
 function handleWebSocketURLFocus() {
-  webSocketURLBeforeEdit = webSocketURL.value
+  webSocketURLBeforeEdit = connectionHost.value
 }
 
 function handleWebSocketURLBlur() {
-  if (webSocketURL.value === webSocketURLBeforeEdit) {
+  if (!connectionHost.value) {
+    connectionHost.value = defaultConnectionHost
+  }
+
+  if (connectionHost.value === webSocketURLBeforeEdit) {
     return
   }
 
-  const confirmed = window.confirm('WebSocket URLが変更されました。画面を再読み込みしますか？',)
+  const confirmed = window.confirm('接続先IPが変更されました。画面を再読み込みしますか？')
 
   if (!confirmed) {
     webSocketURLInput.value?.focus()
