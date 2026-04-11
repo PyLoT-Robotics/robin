@@ -10,7 +10,7 @@ import { VitePWA } from 'vite-plugin-pwa'
 import tailwindcss from '@tailwindcss/vite'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
-const certDir = path.resolve(__dirname, '..', 'certs')
+const certDir = path.resolve(__dirname, 'certs')
 const certFile = path.join(certDir, 'dev-cert.pem')
 const keyFile = path.join(certDir, 'dev-key.pem')
 
