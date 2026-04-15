@@ -21,35 +21,57 @@
       <VelocityChart
         :velocity="velocity"/>
     </div>
-    <button
-      class="grid place-content-center grow text-4xl select-none"
-      @click="isPublishingTopic = !isPublishingTopic"
-      :class="{
-        'bg-blue-700/40': !isPublishingTopic,
-        'bg-blue-700': isPublishingTopic,
-      }">
-      Publish Topic
-    </button>
-    <div class="basis-52 min-h-52 flex flex-row">
+    <div class="flex flex-row border-border border-y">
       <button
-        class="grid place-content-center grow text-4xl select-none"
-        @pointerdown="startMove"
-        @pointerup="stopMove"
-        @pointercancel="stopMove"
-        @pointerleave="stopMove"
-        :class="{
-          'bg-amber-600/40': !moveActive,
-          'bg-amber-600': moveActive,
-        }">
-        Move
+        class="grow border-border bg-black border-x-[0.5px] h-12"
+        @click="isPublishingTopic = !isPublishingTopic">
+        <div
+          class="flex flex-row gap-2 items-center justify-center select-none w-full h-full border-green-400 transition-all duration-200"
+          :class="{
+            'border-4': isPublishingTopic,
+            'border-0': !isPublishingTopic
+          }">
+          <div class="relative">
+            <Icon
+              icon="bi:broadcast-pin"/>
+            <div class="absolute bottom-0 right-0 translate-x-1/2 translate-y-1/2 size-3 rounded-full bg-black grid place-content-center">
+              <Icon
+                class="text-sm"
+                :class="{
+                  'text-green-500': isPublishingTopic,
+                  'text-red-500': !isPublishingTopic
+                }"
+                :icon="isPublishingTopic ? 'bi:check' : 'bi:x'"/>
+            </div>
+          </div>
+          <p>{{
+            isPublishingTopic
+              ? "Publishing Topic"
+              : "Not Publishing Topic"
+          }}</p>
+        </div>
       </button>
       <button
-        class="grid place-content-center px-6 text-lg select-none bg-zinc-700 hover:bg-zinc-600"
+        class="border-border border-x-[0.5px] px-4"
         @click="resetPosition"
       >
-        Reset
+        <Icon
+          icon="bi:arrow-clockwise"
+          class="text-xl"/>
       </button>
     </div>
+    <button
+      class="grid place-content-center grow text-4xl select-none basis-52 min-h-52 transition duration-100"
+      @pointerdown="startMove"
+      @pointerup="stopMove"
+      @pointercancel="stopMove"
+      @pointerleave="stopMove"
+      :class="{
+        'bg-amber-600/0': !moveActive,
+        'bg-amber-600/60': moveActive,
+      }">
+      Move
+    </button>
   </div>
 </template>
 <script setup lang="ts">
@@ -60,6 +82,7 @@ import VelocityChart from '@/components/armController/velocityChart.vue'
 import { useAccelerometer } from '@/hooks/useAccelerometer'
 import { onBeforeUnmount, onMounted, reactive, ref } from 'vue'
 import { ros } from "@/plugins/ros"
+import { Icon } from '@iconify/vue'
 
 const isPublishingTopic = ref(false)
 const armControllerPositionTopicName = '/robin/arm_controller'
