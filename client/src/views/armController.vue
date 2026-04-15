@@ -61,14 +61,14 @@
       </button>
     </div>
     <button
-      class="grid place-content-center grow text-4xl select-none basis-52 min-h-52 transition duration-100"
+      class="grid place-content-center grow text-4xl select-none basis-52 min-h-52 transition-all duration-100 border-orange-400"
       @pointerdown="startMove"
       @pointerup="stopMove"
       @pointercancel="stopMove"
       @pointerleave="stopMove"
       :class="{
-        'bg-amber-600/0': !moveActive,
-        'bg-amber-600/60': moveActive,
+        'bg-amber-600/0 border-0': !moveActive,
+        'bg-amber-500/30 border-4': moveActive,
       }">
       Move
     </button>

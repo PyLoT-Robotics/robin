@@ -6,7 +6,7 @@
         :class="isInitialPoseMode ? 'bg-orange-500/30 text-orange-200' : ''"
         @click="toggleInitialPoseMode"
       >
-        <Icon icon="material-symbols:pin-drop" class="size-6" />
+        <Icon icon="bi:pin-map-fill" class="size-4" />
         <p class="text-2xl">2D Pose Estimate</p>
       </button>
       <button
@@ -14,7 +14,7 @@
         :class="isNav2GoalMode ? 'bg-sky-500/30 text-sky-100' : ''"
         @click="toggleNav2GoalMode"
       >
-        <Icon icon="material-symbols:pin-drop-outline" class="size-6" />
+        <Icon icon="bi:flag-fill" class="size-4" />
         <p class="text-2xl">Nav2 Goal</p>
       </button>
     </div>
