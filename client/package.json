@@ -18,7 +18,7 @@
     "roslib": "^2.1.0",
     "tailwindcss": "^4.2.1",
     "three": "^0.180.0",
-    "vercel": "^50.43.0",
+    "vercel": "^51.3.0",
     "vite-plugin-pwa": "^1.2.0",
     "vue": "^3.5.29"
   },
