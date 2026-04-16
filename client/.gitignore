@@ -41,3 +41,4 @@ __screenshots__/
 dev-dist
 certs
 .vercel
+package-lock.json
