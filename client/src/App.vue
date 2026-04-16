@@ -18,6 +18,12 @@
     </div>
     <div class="grow min-w-0 overflow-hidden flex flex-col">
       <div
+        v-if="!isOnline"
+        class="border-yellow-500 border-b text-yellow-300 bg-yellow-500/20 text-center py-2"
+      >
+        Offline — no network connection
+      </div>
+      <div
         v-if="status === 'error' || status === 'closed'"
         class="border-red-500 border-b text-red-400 bg-red-500/20 text-center py-2"
       >
@@ -103,8 +109,11 @@ import Message from './components/message.vue'
 import { createControllerTopicInterval } from './utils/createControllerTopicInterval'
 import type { Control } from './model/control'
 import ViewTabButton from './components/viewTabButton.vue'
+import { useOnlineStatus } from './hooks/useOnlineStatus'
 
 import { views } from './views'
+
+const { isOnline } = useOnlineStatus()
 
 const controllerStatus = reactive({
   available: false,
