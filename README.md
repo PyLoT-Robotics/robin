@@ -3,6 +3,7 @@
   src="client/public/OGP.png"/>
 
 # Robin
+https://robin.pylot-robotics.org
 
 [PyLoT Robotics](https://pylot.kaijo-physics.club)で制作しているロボットのデバッグ用コントローラーです。
 
@@ -30,15 +31,16 @@ Topicの送受信に必要なRosbrdige_serverの起動
 ```bash
 ros2 launch rosbridge_server rosbridge_websocket_launch.xml
 ```
-クライアントの起動
+映像送信用のVideo_publisherの起動
+```bash
+source install/setup.bash
+ros2 run robin video_publisher
+```
+クライアントの起動(optional)
+> クライアントは https://robin.pylot-robotics.org で公開されています。もしインターネットに接続できない場合にはクライアントの起動を試してみてください。
 ```bash
 colcon build
 source install/setup.bash
 ros2 run robin client
 ```
 (2秒以内くらいにQRコードがでれば成功です、でなければ何かがうまく行ってないので`sh gist/setup.sh`をしてください)
-映像送信用のVideo_publisherの起動
-```bash
-source install/setup.bash
-ros2 run robin video_publisher
-```
