@@ -39,9 +39,15 @@ export default defineConfig({
       devOptions: {
         enabled: true,
       },
+      workbox: {
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2}'],
+        navigateFallback: '/index.html',
+        navigateFallbackDenylist: [/^\/api\//],
+      },
       manifest: {
         name: 'Robin',
         short_name: 'Robin',
+        start_url: '/',
         theme_color: '#09090b',
         background_color: '#09090b',
         display: 'standalone',
