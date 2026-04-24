@@ -17,12 +17,7 @@
       />
     </div>
     <div class="grow min-w-0 overflow-hidden flex flex-col">
-      <div
-        v-if="status === 'error' || status === 'closed'"
-        class="border-red-500 border-b text-red-400 bg-red-500/20 text-center py-2"
-      >
-        Cannot Connect to ROS...
-      </div>
+      <RosNoConnection/>
       <div
         class="shrink-0 overflow-hidden transition-[height] duration-300 ease-in-out"
         :class="isMessageShown ? 'h-12' : 'h-0'"
@@ -98,13 +93,14 @@
 import ControllerLeft from '@/components/controller/controller_left.vue'
 import ControllerRight from '@/components/controller/controller_right.vue'
 import { computed, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
-import { ros, status } from '@/plugins/ros'
+import { ros } from '@/plugins/ros'
 import Message from './components/message.vue'
 import { createControllerTopicInterval } from './utils/createControllerTopicInterval'
 import type { Control } from './model/control'
 import ViewTabButton from './components/viewTabButton.vue'
 
 import { views } from './views'
+import RosNoConnection from './components/rosNoConnection.vue'
 
 const controllerStatus = reactive({
   available: false,

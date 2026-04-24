@@ -89,9 +89,14 @@ export function createRos() {
     scheduleReconnect()
   })
 
-  ros.connect(rosWebsocketURL)
+  function connect() {
+    console.log("connecting...")
+    ros.connect(rosWebsocketURL)
+  }
 
-  return { ros, status, error }
+  connect()
+
+  return { ros, status, error, connect }
 }
 
 export function createTopic(ros: RosLib.Ros, name: string, messageType: string) {
