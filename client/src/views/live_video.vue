@@ -6,10 +6,10 @@
       playsinline
       muted
       preload="none"
-      class="grow object-contain"
+      class="grow object-contain min-h-0"
     />
     <div
-      class="rounded-md px-3 py-1 text-sm font-mono text-center border-b border-border"
+      class="px-3 py-1 text-sm font-mono text-center border-b border-border"
       :class="isFrameStale ? 'text-red-400' : 'text-zinc-100'"
       v-if="lastFrameUpdatedAtText"
     >
