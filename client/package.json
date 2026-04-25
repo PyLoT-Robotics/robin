@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "bun showQRcode.ts && vite --host",
+    "transfer_rootCA": "bun showQRcode.ts rootCA.pem && vite --host",
     "create_cert": "sh create_cert.sh",
     "generate-pwa-assets": "pwa-assets-generator --config pwa-assets.config.ts",
     "build": "vue-tsc -b && vite build",

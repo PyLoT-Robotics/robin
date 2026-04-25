@@ -2,7 +2,7 @@ import { networkInterfaces } from 'os'
 import QRCode from 'qrcode'
 
 const args = process.argv.slice(2)
-const port = args[0] ?? '5173'
+const port = 5173
 
 const localIP: string = (() => {
   const nets = networkInterfaces()
@@ -16,7 +16,9 @@ const localIP: string = (() => {
   throw new Error('No local IP address found')
 })()
 
-const url = `https://${localIP}:${port}/`
+
+const url = `https://${localIP}:${port}/` + (args[0] ?? "")
+
 QRCode.toString(url, (error, qrcode) => {
   if (error) {
     throw error
