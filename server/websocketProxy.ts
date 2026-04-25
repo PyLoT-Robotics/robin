@@ -92,8 +92,8 @@ export const createProxyServerConfig = (
 	const port = options.port ?? Number(Bun.env.WSS_PORT ?? 9091);
 	const hostname = options.hostname ?? Bun.env.HOST ?? "0.0.0.0";
 	const upstreamUrl = options.upstreamUrl ?? Bun.env.UPSTREAM_URL ?? "ws://localhost:9090";
-	const certPath = options.certPath ?? Bun.env.TLS_CERT_PATH ?? "../certs/dev-cert.pem";
-	const keyPath = options.keyPath ?? Bun.env.TLS_KEY_PATH ?? "../certs/dev-key.pem";
+	const certPath = options.certPath ?? Bun.env.TLS_CERT_PATH ?? "../client/certs/dev-cert.pem";
+	const keyPath = options.keyPath ?? Bun.env.TLS_KEY_PATH ?? "../client/certs/dev-key.pem";
 
 	return {
 		port,
@@ -122,8 +122,8 @@ export const startWebSocketProxy = () => {
 	const port = Number(Bun.env.WSS_PORT ?? 9091);
 	const hostname = Bun.env.HOST ?? "0.0.0.0";
 	const upstreamUrl = Bun.env.UPSTREAM_URL ?? "ws://localhost:9090";
-	const certPath = Bun.env.TLS_CERT_PATH ?? "../certs/dev-cert.pem";
-	const keyPath = Bun.env.TLS_KEY_PATH ?? "../certs/dev-key.pem";
+	const certPath = Bun.env.TLS_CERT_PATH ?? "../client/certs/dev-cert.pem";
+	const keyPath = Bun.env.TLS_KEY_PATH ?? "../client/certs/dev-key.pem";
 	const localIp = Bun.env.LOCAL_IP ?? detectLocalIp();
 	const server = Bun.serve<ProxySocketData>(
 		createProxyServerConfig({

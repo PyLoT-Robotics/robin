@@ -36,7 +36,8 @@
         @blur="handleWebSocketURLBlur"
       />
       <p class="px-2 text-sm text-zinc-400">
-        WebSocket: wss://&lt;IP&gt;:9091 / VideoPublisher: https://&lt;IP&gt;:8081
+        WebSocket: wss://&lt;IP&gt;:9091 (Check <a :href="`https://${connectionHost}:9091`" class="underline">Here</a>)<br>
+        VideoPublisher: https://&lt;IP&gt;:8081 (Check <a :href="`https://${connectionHost}:8081`" class="underline">Here</a>)
       </p>
     </div>
   </div>

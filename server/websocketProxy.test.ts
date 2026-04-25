@@ -53,8 +53,8 @@ describe("websocket proxy", () => {
 			port: 8080,
 			hostname: "0.0.0.0",
 			upstreamUrl: "ws://localhost:9090",
-			certPath: "../certs/dev-cert.pem",
-			keyPath: "../certs/dev-key.pem",
+			certPath: "../client/certs/dev-cert.pem",
+			keyPath: "../client/certs/dev-key.pem",
 		});
 
 		const response = await config.fetch(
