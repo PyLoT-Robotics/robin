@@ -11,7 +11,7 @@ setup(
             ['resource/' + package_name]),
         ('share/' + package_name, ['package.xml']),
     ],
-    install_requires=['setuptools'],
+    install_requires=['setuptools', 'pandas', 'pyarrow'],
     zip_safe=True,
     maintainer='pylot',
     maintainer_email='johndoe@example.com',
@@ -21,7 +21,8 @@ setup(
     entry_points={
         'console_scripts': [
             'client = robin.client:main',
-            'video_publisher = robin.video_publisher:main'
+            'video_publisher = robin.video_publisher:main',
+            'lerobot_recorder = robin.lerobot_recorder:main'
         ],
     },
 )
