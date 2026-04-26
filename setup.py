@@ -20,7 +20,6 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            'client = robin.client:main',
             'video_publisher = robin.video_publisher:main',
             'lerobot_recorder = robin.lerobot_recorder:main'
         ],

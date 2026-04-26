@@ -1,5 +1,6 @@
 ROBIN_REPOSITORY_PATH="$(cd "$(dirname "$0")/.." && pwd)"
 
+sh "${ROBIN_REPOSITORY_PATH}/gists/setup.sh"
+
 cd "${ROBIN_REPOSITORY_PATH}/client"
-cp "$(mkcert -CAROOT)/rootCA.pem" ./public/rootCA.pem
-bun run transfer_rootCA
+bun run dev

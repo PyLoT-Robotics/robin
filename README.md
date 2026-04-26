@@ -9,7 +9,7 @@
 # セットアップ
 このREADMEを内包しているフォルダで、
 ```bash
-sh gists/setup.sh
+sh gists/install.sh
 ```
 を実行すればあとは指示に従えばいいです
 
@@ -29,24 +29,24 @@ https://zenn.dev/takumiabe21/articles/645a38c0c18389 の「○iPhoneのSafariか
 # 起動する
 ```bash
 #Topicの送受信に必要なRosbrdige_serverの起動
-ros2 launch rosbridge_server rosbridge_websocket_launch.xml
+sh src/robin/gists/start_rosbridge.sh
+
+#<このREADMEを内包しているフォルダ>/../.. (すなわち、installやlog, srcを含んでいるフォルダ)で以下のコマンドを実行
 
 #Video Publisherの起動
+colcon build
 source install/setup.bash
 ros2 run robin video_publisher
 
 #プロキシサーバーの起動
-cd src/robin/server
-bun run serve
+sh src/robin/gists/start_proxy_server.sh
 ```
+
 # (optional)クライアントの起動
 ```bash
-colcon build
-source install/setup.bash
-ros2 run robin client
+sh src/robin/gists/start_client.sh
 ```
-(2秒以内くらいにQRコードがでれば成功です、でなければ何かがうまく行ってないので`sh gist/setup.sh`をしてください)
-映像送信用のVideo_publisherの起動
+(2秒以内くらいにQRコードがでれば成功です)
 
 # 特定TopicをLeRobot形式で保存する
 以下で任意のTopicを購読し、LeRobot形式の最小構成で保存できます。
