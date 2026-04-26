@@ -25,32 +25,25 @@
     </div>
 
     <div class="flex flex-col gap-1 font-mono">
-      <p class="px-2 text-lg">Connection IP Address</p>
-      <input
-        ref="webSocketURLInput"
-        v-model.lazy="connectionHost"
-        type="text"
-        class="bg-zinc-900 text-zinc-200 px-2 py-1 border-y border-border outline-none"
-        placeholder="192.168.0.10"
-        @focus="handleWebSocketURLFocus"
-        @blur="handleWebSocketURLBlur"
-      />
+      <p class="px-2 text-lg">Connection Endpoint</p>
+      <div class="bg-zinc-900 text-zinc-200 px-2 py-1 border-y border-border">
+        Fixed to current dev server origin
+      </div>
       <p class="px-2 text-sm text-zinc-400">
-        WebSocket: wss://&lt;IP&gt;:9091 (Check <a :href="`https://${connectionHost}:9091`" class="underline">Here</a>)<br>
-        VideoPublisher: https://&lt;IP&gt;:8081 (Check <a :href="`https://${connectionHost}:8081`" class="underline">Here</a>)
+        WebSocket: {{ rosbridgeURL }}<br>
+        VideoPublisher: {{ videoPublisherURL }}
       </p>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, watch } from 'vue'
 import { useLocalStorage } from '@/hooks/useLocalStorage'
 import {
+  buildRosWebSocketURL,
+  buildVideoPublisherBaseURL,
   createTopic,
-  defaultConnectionHost,
-  getConnectionHostFromStorage,
-  normalizeConnectionHost,
   type Topic,
 } from '@/api/ros'
 import { useTopicsList } from '@/hooks/useTopicsList'
@@ -58,7 +51,6 @@ import { ros } from '@/plugins/ros'
 
 const cameraTopicStorage = useLocalStorage('CameraTopic')
 const logTopicStorage = useLocalStorage('LogTopic')
-const webSocketURLStorage = useLocalStorage('WebSocketURL')
 const videoPublisherSubscribeTopicName = '/robin/video_publisher_subscribe_topic'
 
 const { topicsList } = useTopicsList(ros)
@@ -102,39 +94,8 @@ const logTopic = computed({
   },
 })
 
-const connectionHost = computed({
-  get: () => getConnectionHostFromStorage(),
-  set: (value: string) => {
-    webSocketURLStorage.value = normalizeConnectionHost(value)
-  },
-})
-
-const webSocketURLInput = ref<HTMLInputElement | null>(null)
-
-let webSocketURLBeforeEdit = ''
-
-function handleWebSocketURLFocus() {
-  webSocketURLBeforeEdit = connectionHost.value
-}
-
-function handleWebSocketURLBlur() {
-  if (!connectionHost.value) {
-    connectionHost.value = defaultConnectionHost
-  }
-
-  if (connectionHost.value === webSocketURLBeforeEdit) {
-    return
-  }
-
-  const confirmed = window.confirm('接続先IPが変更されました。画面を再読み込みしますか？')
-
-  if (!confirmed) {
-    webSocketURLInput.value?.focus()
-    return
-  }
-
-  window.location.reload()
-}
+const rosbridgeURL = buildRosWebSocketURL()
+const videoPublisherURL = buildVideoPublisherBaseURL()
 
 watch(
   cameraTopic,

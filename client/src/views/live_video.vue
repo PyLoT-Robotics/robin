@@ -19,7 +19,7 @@
 </template>
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref, watchEffect } from 'vue'
-import { buildVideoPublisherBaseURL, getConnectionHostFromStorage } from '@/api/ros'
+import { buildVideoPublisherBaseURL } from '@/api/ros'
 
 const remoteVideo = ref<HTMLVideoElement | null>(null)
 
@@ -112,8 +112,7 @@ async function pollInboundFrameStats() {
 
 onMounted(() => {
   const pc = new RTCPeerConnection()
-  const connectionHost = getConnectionHostFromStorage()
-  const videoPublisherOfferURL = `${buildVideoPublisherBaseURL(connectionHost)}/offer`
+  const videoPublisherOfferURL = `${buildVideoPublisherBaseURL()}/offer`
   peerConnection.value = pc
 
   nowTimer = setInterval(() => {

@@ -4,8 +4,9 @@ import type { Action, Ros, Topic } from 'roslib'
 import { ref } from 'vue'
 
 const connectionHostStorageKey = 'WebSocketURL'
-const rosBridgePort = 9091
-const videoPublisherPort = 8081
+const rosBridgePath = '/rosbridge'
+const videoPublisherPath = '/video_publisher'
+const rosBridgeProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
 
 export const defaultConnectionHost = window.location.hostname
 
@@ -25,24 +26,18 @@ export function normalizeConnectionHost(value: string) {
   }
 }
 
-export function getConnectionHostFromStorage() {
-  const stored = getLocalStorageItem(connectionHostStorageKey)
-  return normalizeConnectionHost(stored) || defaultConnectionHost
+export function buildRosWebSocketURL(_host?: string) {
+  return `${rosBridgeProtocol}//${window.location.host}${rosBridgePath}`
 }
 
-export function buildRosWebSocketURL(host: string) {
-  return `wss://${host}:${rosBridgePort}`
+export function buildVideoPublisherBaseURL(_host?: string) {
+  return `${window.location.origin}${videoPublisherPath}`
 }
 
-export function buildVideoPublisherBaseURL(host: string) {
-  return `https://${host}:${videoPublisherPort}`
-}
-
-export const defaultRosWebsocketURL = buildRosWebSocketURL(defaultConnectionHost)
+export const defaultRosWebsocketURL = buildRosWebSocketURL()
 
 export function createRos() {
-  const connectionHost = getConnectionHostFromStorage()
-  const rosWebsocketURL = buildRosWebSocketURL(connectionHost)
+  const rosWebsocketURL = buildRosWebSocketURL()
   const ros = new RosLib.Ros()
 
   const status = ref<'connected' | 'closed' | 'error'>('closed')

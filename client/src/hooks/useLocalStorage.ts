@@ -1,12 +1,11 @@
 import { ref, computed } from 'vue'
 
-type LocalStorageKeys = 'CameraTopic' | 'LogTopic' | 'WebSocketURL'
+type LocalStorageKeys = 'CameraTopic' | 'LogTopic'
 
 // グローバルな状態を管理
 const storageState = ref<Record<LocalStorageKeys, string>>({
   CameraTopic: localStorage.getItem('CameraTopic') || '',
-  LogTopic: localStorage.getItem('LogTopic') || '',
-  WebSocketURL: localStorage.getItem('WebSocketURL') || '',
+  LogTopic: localStorage.getItem('LogTopic') || ''
 })
 
 export function getLocalStorageItem(key: LocalStorageKeys): string {
