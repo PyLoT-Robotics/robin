@@ -11,30 +11,6 @@ type CreateProxyServerConfigOptions = {
 	createUpstreamSocket?: (url: string) => WebSocket;
 };
 
-const WS_LOG_PREFIX = "\x1b[46m\x1b[30m[WebSocket]\x1b[0m";
-
-const formatPayloadForLog = (payload: string | ArrayBuffer | Uint8Array) => {
-	if (typeof payload === "string") {
-		return payload;
-	}
-
-	if (payload instanceof Uint8Array) {
-		return `<binary ${payload.byteLength} bytes>`;
-	}
-
-	return `<binary ${payload.byteLength} bytes>`;
-};
-
-const logProxiedTraffic = (
-	direction: "client->upstream" | "upstream->client",
-	payload: string | ArrayBuffer | Uint8Array,
-) => {
-	const timestamp = new Date().toISOString();
-	console.log(
-		`${WS_LOG_PREFIX} ${timestamp} ${direction} ${formatPayloadForLog(payload)}`,
-	);
-};
-
 const detectLocalIp = (): string => {
 	const result = Bun.spawnSync({
 		cmd: [
@@ -61,13 +37,6 @@ export const createProxyWebSocketHandlers = (
 
 		upstream.onmessage = (event) => {
 			if (client.readyState === WebSocket.OPEN) {
-				if (
-					typeof event.data === "string" ||
-					event.data instanceof ArrayBuffer ||
-					event.data instanceof Uint8Array
-				) {
-					logProxiedTraffic("upstream->client", event.data);
-				}
 				client.send(event.data);
 			}
 		};
@@ -95,7 +64,6 @@ export const createProxyWebSocketHandlers = (
 		}
 
 		if (upstream.readyState === WebSocket.OPEN) {
-			logProxiedTraffic("client->upstream", message);
 			upstream.send(message);
 			return;
 		}

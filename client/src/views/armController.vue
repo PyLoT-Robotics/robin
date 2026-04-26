@@ -16,6 +16,63 @@
       <PositionVectorView
         :position="position"
         :orientation="orientation"/>
+      <div class="border-b border-border px-4 py-3 flex flex-col gap-3">
+        <div class="flex flex-row items-center justify-between">
+          <p class="text-zinc-300">Position Sliders (±30cm)</p>
+          <button
+            class="text-sm border border-border px-3 py-1 rounded text-zinc-200"
+            @click="sliderLocked = !sliderLocked">
+            {{ sliderLocked ? 'Unlock' : 'Lock' }}
+          </button>
+        </div>
+        <div class="flex flex-col gap-2">
+          <div class="flex flex-col gap-1">
+            <div class="flex flex-row items-center justify-between text-sm text-zinc-300">
+              <p>X</p>
+              <p>{{ Math.round(position.x * 100) }} cm</p>
+            </div>
+            <input
+              class="w-full"
+              type="range"
+              :min="-positionLimit"
+              :max="positionLimit"
+              :step="0.01"
+              :value="position.x"
+              :disabled="sliderLocked"
+              @input="updatePositionAxis('x', $event)"/>
+          </div>
+          <div class="flex flex-col gap-1">
+            <div class="flex flex-row items-center justify-between text-sm text-zinc-300">
+              <p>Y</p>
+              <p>{{ Math.round(position.y * 100) }} cm</p>
+            </div>
+            <input
+              class="w-full"
+              type="range"
+              :min="-positionLimit"
+              :max="positionLimit"
+              :step="0.01"
+              :value="position.y"
+              :disabled="sliderLocked"
+              @input="updatePositionAxis('y', $event)"/>
+          </div>
+          <div class="flex flex-col gap-1">
+            <div class="flex flex-row items-center justify-between text-sm text-zinc-300">
+              <p>Z</p>
+              <p>{{ Math.round(position.z * 100) }} cm</p>
+            </div>
+            <input
+              class="w-full"
+              type="range"
+              :min="-positionLimit"
+              :max="positionLimit"
+              :step="0.01"
+              :value="position.z"
+              :disabled="sliderLocked"
+              @input="updatePositionAxis('z', $event)"/>
+          </div>
+        </div>
+      </div>
       <AccelChart
         :acceleration="acceleration"/>
       <VelocityChart
@@ -121,6 +178,8 @@ type Vector = {
 const acceleration = reactive<Vector>({ x: 0, y: 0, z: 0 })
 const velocity = reactive<Vector>({ x: 0, y: 0, z: 0 })
 const position = reactive<Vector>({ x: 0, y: 0, z: 0 })
+const sliderLocked = ref(true)
+const positionLimit = 0.3
 const tps = 20
 const dt = 1 / tps
 
@@ -130,6 +189,20 @@ function applyDeadband(value: number){
     return 0
   }
   return value
+}
+
+function clampPosition(value: number): number {
+  return Math.max(-positionLimit, Math.min(positionLimit, value))
+}
+
+function updatePositionAxis(axis: keyof Vector, event: Event): void {
+  const target = event.target as HTMLInputElement
+  const parsed = Number.parseFloat(target.value)
+  if (Number.isNaN(parsed)) {
+    return
+  }
+  position[axis] = clampPosition(parsed)
+  velocity[axis] = 0
 }
 
 function rotateAccelerationByOrientation(accel: Vector): Vector {
@@ -188,9 +261,9 @@ function loop(){
     velocity.y += acceleration.y * dt
     velocity.z += acceleration.z * dt
 
-    position.x += velocity.x * dt
-    position.y += velocity.y * dt
-    position.z += velocity.z * dt
+    position.x = clampPosition(position.x + velocity.x * dt)
+    position.y = clampPosition(position.y + velocity.y * dt)
+    position.z = clampPosition(position.z + velocity.z * dt)
   } else {
     velocity.x = 0
     velocity.y = 0
