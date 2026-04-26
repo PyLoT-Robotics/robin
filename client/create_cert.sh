@@ -1,5 +1,8 @@
 #!/usr/bin/env sh
 
+ROBIN_REPOSITORY_PATH="$(cd "$(dirname "$0")/.." && pwd)"
+cd "${ROBIN_REPOSITORY_PATH}/client"
+
 mkdir -p certs
 
 # OSごとにローカルIPを取得
