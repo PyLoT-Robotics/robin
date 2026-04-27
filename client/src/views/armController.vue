@@ -270,7 +270,7 @@ function loop(){
     velocity.z = 0
   }
 
-  if( isPublishingTopic.value ){
+  if( isPublishingTopic.value && moveActive.value ){
     armControllerTopic.publish({
       x: position.x,
       y: position.y,
