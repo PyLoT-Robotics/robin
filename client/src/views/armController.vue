@@ -142,7 +142,7 @@ import { ros } from "@/plugins/ros"
 import { Icon } from '@iconify/vue'
 
 const isPublishingTopic = ref(false)
-const armControllerPositionTopicName = '/robin/arm_controller'
+const armControllerPositionTopicName = '/luna_arm_custom_ik_pose_commander/target_delta'
 const armControllerTopic = createTopic(ros, armControllerPositionTopicName, 'geometry_msgs/Vector3')
 
 const moveActive = ref(false)
